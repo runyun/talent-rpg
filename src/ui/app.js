@@ -8,4 +8,5 @@ export const app = {
   talent: () => {},
   timer: () => {},
   finish: () => {},
+  trial: () => {},
 };

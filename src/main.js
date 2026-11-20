@@ -1,10 +1,14 @@
 // App entry: register the offline worker, open storage, route between screens.
 
 import { openDb, requestPersistence, touchOpen, put } from './db.js';
-import { mount } from './dom.js';
+import { el, mount } from './dom.js';
+import { text, raw } from './text.js';
 import {
-  state, loadState, loadActive, savePlayer,
+  state, loadState, loadActive, savePlayer, applyUpdates,
 } from './store.js';
+import { plateauUpdates, returnUpdates } from './model/plateau.js';
+import { renderTrial, leaveTrial } from './ui/trial.js';
+import { stopPlaying, isPlaying } from './ui/media.js';
 import { app } from './ui/app.js';
 import { isStandalone, renderInstall } from './ui/install.js';
 import { renderWelcome } from './ui/welcome.js';
@@ -52,8 +56,19 @@ async function applyWaitingUpdate() {
 
 function show(name) {
   if (screen === 'timer' && name !== 'timer') stopTimer();
+  if (screen === 'trial') leaveTrial();
+  stopPlaying();
   closeSheet();
   screen = name;
+}
+
+/** Daily rule checks: return card (7 days away) and Plateau Dungeon start / end. */
+async function dailyChecks() {
+  const now = new Date();
+  const back = returnUpdates(state, now);
+  if (back) await applyUpdates(back);
+  const plateau = plateauUpdates(state, now);
+  await applyUpdates(plateau);
 }
 
 app.home = () => {
@@ -75,11 +90,23 @@ app.addTalent = ({ onboarding = false } = {}) => {
   mount(root, renderAddTalent({
     onboarding,
     onCancel: () => app.home(),
-    onDone: async () => {
+    onDone: async (talent) => {
       if (onboarding) await savePlayer({ ...state.player, onboardingDone: true });
-      app.home();
+      // Step 7 (spec 5.6): baseline now or later.
+      show('baselinePrompt');
+      mount(root, el('section', { class: 'finish fade-in' },
+        el('div', { class: 'card frame card-auto' }, el('p', { class: 'task' }, text('S08', { talent: talent.name, piece: talent.trialWork }))),
+        el('div', { class: 'focus-bottom' },
+          el('button', { type: 'button', class: 'btn btn-primary btn-start', onclick: () => app.trial({ talentId: talent.id, kind: 'baseline' }) }, raw('L09')),
+          el('button', { type: 'button', class: 'btn', onclick: () => app.home() }, raw('L11')))));
     },
   }));
+};
+
+app.trial = ({ talentId, kind, role }) => {
+  show('trial');
+  window.scrollTo(0, 0);
+  renderTrial(root, { talentId, kind, role });
 };
 
 app.talent = (talentId) => {
@@ -101,11 +128,18 @@ app.finish = (active) => {
 };
 
 // Keep the home card current (slot windows open and close with the clock).
+// Not while a sheet is open, a recording plays, or a text field is being typed in.
+const canRefresh = () => screen === 'home'
+  && !document.querySelector('.sheet-backdrop')
+  && !isPlaying()
+  && !(document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName));
 setInterval(() => {
-  if (screen === 'home' && !document.querySelector('.sheet-backdrop')) app.home();
+  if (canRefresh()) app.home();
 }, 30 * 1000);
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && screen === 'home' && !document.querySelector('.sheet-backdrop')) app.home();
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden || screen !== 'home') return;
+  await dailyChecks();
+  if (canRefresh()) app.home();
 });
 
 async function boot() {
@@ -122,6 +156,8 @@ async function boot() {
   state.openMetricId = await put(db, 'metrics', {
     type: 'open', openedAt: state.openedAt, secondsToStart: null, practiced: false,
   }).catch(() => null);
+
+  await dailyChecks();
 
   // A session that was running when the app was closed.
   const active = await loadActive();

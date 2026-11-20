@@ -150,6 +150,10 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
       baselineDone: false,
       reachedCAt: null,
       createdAt: now,
+      cycleStart: dateKey(new Date(now)),
+      retryPending: false,
+      failStreak: 0,
+      baselineNeeded: false,
     };
     const attributes = attrRows.map((r) => newAttribute(talent.id, r.index, level, {
       material: r.material.value,

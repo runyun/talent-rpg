@@ -29,8 +29,27 @@ export function easierCopy(attr) {
   return { ...attr, [key]: stepValue(attr, kind, attr[key], -1) };
 }
 
+/** Plateau Dungeon methods P5-P7 (spec 7.4). */
+function plateauSentence(attr, size) {
+  const material = attr.material;
+  const n = size === 'mini' ? miniN(attr.nCurrent) : attr.nCurrent;
+  const nText = attr.nUnit === 'sec' ? formatN(attr, n) : n;
+  switch (attr.plateau.method) {
+    case 5: {
+      const half = attr.speedCurrent ? formatSpeed(attr, Math.max(1, Math.round(attr.speedCurrent / 2))) : raw('P5_NO_SPEED');
+      return text('P5', { material, speed: half, n: nText });
+    }
+    case 6:
+      return text('P6', { material, n: nText });
+    case 7:
+    default:
+      return text('P7', { material, min: sizeMinutes(size) });
+  }
+}
+
 /** S02: the task sentence for an attribute and size. */
 export function taskSentence(attr, size) {
+  if (attr.plateau) return plateauSentence(attr, size);
   const mini = size === 'mini';
   const material = attr.material;
   switch (attr.index) {

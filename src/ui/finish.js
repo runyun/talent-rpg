@@ -8,6 +8,7 @@ import {
 import { finishSession } from '../model/session.js';
 import { replaceMaterial } from '../model/knobs.js';
 import { textInput } from './widgets.js';
+import { evidencePrompt } from './timer.js';
 import { app } from './app.js';
 
 const STAGGER_MS = 300; // each line fades in after the previous one
@@ -66,26 +67,39 @@ async function complete(root, active, attr, feedback) {
 function showResults(root, out) {
   const box = el('section', { class: 'finish results' });
   mount(root, box);
-  let waitForInput = false;
+  let pending = 0; // prompts still waiting for an answer
+
+  const promptDone = () => {
+    pending -= 1;
+    if (pending === 0) leaveTimer = setTimeout(leave, STAY_MS);
+  };
 
   out.results.forEach((r, i) => {
+    if (r.evidencePrompt) {
+      pending += 1;
+      const node = evidencePrompt({ talentId: out.session.talentId, sessionId: out.session.id, onDone: promptDone });
+      node.classList.add('fade-in');
+      node.style.animationDelay = `${i * STAGGER_MS}ms`;
+      box.append(node);
+      return;
+    }
     const line = el('p', { class: i === 0 ? 'task fade-in' : 'fade-in' }, text(r.key, r.vars || {}));
     line.style.animationDelay = `${i * STAGGER_MS}ms`;
     box.append(line);
     if (r.materialPrompt) {
-      waitForInput = true;
-      box.append(materialPrompt(out.attr, i * STAGGER_MS));
+      pending += 1;
+      box.append(materialPrompt(out.attr, i * STAGGER_MS, promptDone));
     }
   });
 
-  if (!waitForInput) {
+  if (pending === 0) {
     box.addEventListener('click', leave);
     leaveTimer = setTimeout(leave, (out.results.length - 1) * STAGGER_MS + STAY_MS);
   }
 }
 
 /** S16: type a new material, or keep the current one (L08). */
-function materialPrompt(attr, delay) {
+function materialPrompt(attr, delay, onDone) {
   const input = textInput('', { maxlength: 120 });
   const save = el('button', {
     type: 'button',
@@ -97,7 +111,8 @@ function materialPrompt(attr, delay) {
         return;
       }
       await saveAttribute(replaceMaterial(attr, value, Date.now()));
-      leave();
+      node.replaceChildren(el('p', {}, value));
+      onDone();
     },
   }, raw('L21'));
   const keep = el('button', {
@@ -105,7 +120,8 @@ function materialPrompt(attr, delay) {
     class: 'btn',
     onclick: async () => {
       await saveAttribute({ ...attr, targetPromptOff: true });
-      leave();
+      node.replaceChildren();
+      onDone();
     },
   }, raw('L08'));
   const node = el('div', { class: 'stack fade-in' }, input, save, keep);

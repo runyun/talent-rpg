@@ -52,10 +52,55 @@ function createStores_v1(db) {
   metrics.createIndex('type', 'type');
 }
 
+/**
+ * Update every record of a store inside the upgrade transaction.
+ * fn(record) returns the new record. Any error aborts the whole upgrade (full rollback).
+ */
+function updateAll(tx, storeName, fn) {
+  const store = tx.objectStore(storeName);
+  store.openCursor().onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (!cursor) return;
+    try {
+      cursor.update(fn(cursor.value));
+      cursor.continue();
+    } catch (err) {
+      console.error('Migration failed', err);
+      tx.abort();
+    }
+  };
+}
+
+// 1 -> 2 (stage 3): fields for trial cycles, plateau and the return card.
+function migrate_v1_v2(db, tx) {
+  updateAll(tx, 'talents', (t) => ({
+    ...t,
+    cycleStart: t.cycleStart || t.roleSince, // trial cycle counts from here (spec 7.1)
+    retryPending: t.retryPending || false, // one retry allowed after a failed trial
+    failStreak: t.failStreak || 0, // failed trials in a row (plateau trigger)
+    baselineNeeded: t.baselineNeeded || false, // new trial piece needs a new baseline
+  }));
+  updateAll(tx, 'attributes', (a) => ({
+    ...a,
+    plateau: a.plateau || null, // { method: 5|6|7, start, end } while in the Plateau Dungeon
+    plateauCount: a.plateauCount || 0, // rotates the method 5 -> 6 -> 7
+    plateauEndedAt: a.plateauEndedAt || null,
+    plateauEndShown: a.plateauEndShown || false,
+  }));
+  updateAll(tx, 'player', (p) => ({
+    ...p,
+    returnHandledFor: p.returnHandledFor || null, // lastPracticedAt the return card was handled for
+    returnActive: p.returnActive || false,
+    plateauCheckedWeek: p.plateauCheckedWeek || null,
+  }));
+}
+
 /** MIGRATIONS[i]: (db, tx) => void, upgrades version i to i + 1. */
 export const MIGRATIONS = [
   // 0 -> 1: first schema
   (db) => createStores_v1(db),
+  // 1 -> 2: trial / plateau / return fields
+  migrate_v1_v2,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
@@ -69,9 +114,11 @@ export function openDb({ name = DB_NAME, migrations = MIGRATIONS } = {}) {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(name, version);
     let migrationError = null;
+    let upgradingDb = null;
 
     req.onupgradeneeded = (event) => {
       const db = req.result;
+      upgradingDb = db;
       const tx = req.transaction;
       const from = event.oldVersion;
       try {
@@ -96,6 +143,12 @@ export function openDb({ name = DB_NAME, migrations = MIGRATIONS } = {}) {
     };
     req.onerror = (event) => {
       if (event && event.preventDefault) event.preventDefault();
+      // Close the connection from the failed upgrade so a later open is not blocked by it.
+      try {
+        if (upgradingDb) upgradingDb.close();
+      } catch {
+        // already closed
+      }
       reject(migrationError || req.error || new Error('IndexedDB open failed'));
     };
     req.onblocked = () => reject(new Error('IndexedDB upgrade blocked'));
@@ -183,6 +236,9 @@ export function defaultPlayer(now) {
     practiceDays: 0,
     onboardingDone: false,
     seenExplanations: [],
+    returnHandledFor: null,
+    returnActive: false,
+    plateauCheckedWeek: null,
   };
 }
 

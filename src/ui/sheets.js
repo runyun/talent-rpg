@@ -11,6 +11,10 @@ import {
   openSheet, closeSheet, segmented, timePicker, field, textInput,
 } from './widgets.js';
 import { lengthOptions, placeOptions, weekdayOptions } from './addTalent.js';
+import { applyUpdates } from '../store.js';
+import { roleChange, roleAllowed, maintainLimit } from '../model/roles.js';
+import { confirmMainSwitch } from './trial.js';
+import { app } from './app.js';
 
 /** Reschedule one instance (spec 6.8). onMoved(message) gets the S09 line. */
 export function rescheduleSheet(inst, onMoved) {
@@ -112,11 +116,45 @@ export function renameSheet(talent, onSaved) {
   input.focus();
 }
 
-/** Long-press menu on a talent row (role changes come in stage 3). */
+/**
+ * Change role. Leaving Dormant goes through the awaken retest first (spec 6.10);
+ * becoming Main asks S55 about the old Main's slots.
+ */
+export async function changeRole(talent, role, onChanged) {
+  closeSheet();
+  if (role === talent.role) return;
+  if (talent.role === 'dormant') {
+    app.trial({ talentId: talent.id, kind: 'awaken', role });
+    return;
+  }
+  if (role === 'main') {
+    confirmMainSwitch(talent.id, onChanged);
+    return;
+  }
+  await applyUpdates(roleChange(state, talent.id, role));
+  onChanged();
+}
+
+/** Main / Maintain / Dormant buttons (the current role and full roles are disabled). */
+export function roleButtons(talent, onChanged) {
+  return ['main', 'maintain', 'dormant'].map((role) => {
+    const label = raw({ main: 'L45', maintain: 'L46', dormant: 'L47' }[role]);
+    const allowed = roleAllowed(state, talent.id, role);
+    return el('button', {
+      type: 'button',
+      class: `btn${role === talent.role ? ' on' : ''}`,
+      disabled: role === talent.role || !allowed || undefined,
+      onclick: () => changeRole(talent, role, onChanged),
+    }, allowed ? label : `${label} · ${text('L56', { count: maintainLimit(state.player, new Date()) })}`);
+  });
+}
+
+/** Long-press menu on a talent row. */
 export function talentMenu(talent, onChanged) {
   openSheet(el('div', { class: 'stack' },
     el('p', { class: 'muted' }, talent.name),
     el('button', { type: 'button', class: 'btn', onclick: () => renameSheet(talent, onChanged) }, raw('L18')),
+    ...roleButtons(talent, onChanged),
     confirmDeleteButton(async () => {
       await deleteTalent(talent.id);
       closeSheet();

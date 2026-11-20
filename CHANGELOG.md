@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 (stage-3)
+
+- Data schema v2 with a migration from v1: trial cycle, retry, failed-trial streak and new-piece baseline on talents; Plateau Dungeon fields on attributes; return-card fields on the player. A failed migration rolls back fully and closes its connection.
+- Recording: microphone (MediaRecorder), camera photo, or pasted text; playback in the app.
+- Baseline test after adding a talent ("Do it now" / "Later"); until the first baseline, slot cards show the baseline instead of the task.
+- Trials: every 4 weeks (Main) or 8 weeks (Maintain) once eligible (3/4 of planned slots as Standard/Deep sessions). Warm-up, 2-min measured run with recording, value, side-by-side playback with last time, "better?" answer, optional full piece. Pass needs one step of improvement and "Yes".
+- Rank up E -> D -> C -> B -> A -> S, stars after S. Failed trial: what is still needed and a retry date 2 weeks later (one retry). Rank C: new materials and an optional new trial piece (baseline first). Rank-up screen is shown inverted.
+- Main talent question after a Main trial; switching Main asks whether to move the old Main's slots.
+- Role switch (Main / Maintain / Dormant) from the talent menu and talent page; leaving Dormant runs the 2-min awaken retest and resets difficulty to the lower of start and last value.
+- Return card after 7 days without practice: every attribute one step easier, 2 min by default, "Change slots".
+- Plateau Dungeon: checked weekly; after 2 failed trials or 4 weeks without a knob change (with 4+ sessions), one attribute uses a different method for 7 days (half speed, the part you miss most, timed challenge), then returns.
+- 30-sec records: offered at the Deep cool-down and on a weekly win; the newest 30 per talent are kept.
+- Progress Archive: trial recordings and 30-sec records by talent; pick two to play side by side.
+- Talents list shows the next trial date and eligibility (e.g. 6/9). Talent page shows trial history (values and recordings).
+- Fix: only Start and the rank-up screen use inverted colors (spec section 3); other main buttons use a bold frame.
+
 ## 0.2.1
 
 - Fix: a new version now reliably takes over on the next open. On iOS a swiped-away Home Screen app often stays alive, so the waiting version never activated. At startup, before anything is shown, the app now switches to a downloaded version and reloads once. Never during use.

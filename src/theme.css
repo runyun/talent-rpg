@@ -103,10 +103,31 @@ textarea {
   touch-action: manipulation;
 }
 
+/* Main action of a screen: emphasis without inversion. */
 .btn-primary {
+  border-width: calc(var(--line-width) * 2);
+  font-weight: 700;
+}
+
+/* Inverted (white on black) is only for Start and the rank-up screen (spec section 3). */
+.btn-invert {
   background: var(--accent-bg);
   color: var(--accent-fg);
   border-color: var(--accent-bg);
+}
+
+.inverse {
+  color: var(--accent-fg);
+}
+
+html:has(.inverse),
+html:has(.inverse) body {
+  background: var(--accent-bg);
+}
+
+.inverse .btn {
+  color: var(--accent-fg);
+  border-color: var(--accent-fg);
 }
 
 .btn-text {
@@ -602,6 +623,118 @@ select:focus {
 
 .results p {
   margin: 0;
+}
+
+/* ---- Records, trials, archive ---- */
+
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--line-width) solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: max(16px, 1em);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.inline .btn {
+  flex: 1 1 0;
+}
+
+.media-view {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.media-photo {
+  display: block;
+  max-width: 100%;
+  max-height: 40dvh;
+  object-fit: contain;
+  border: var(--line-width) solid var(--muted);
+}
+
+.media-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.compare.frame {
+  margin-bottom: 12px;
+}
+
+.archive-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: var(--line-width) solid var(--line);
+}
+
+.archive-group h3 {
+  font-size: 1em;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.archive-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.archive-item .seg-btn {
+  text-align: left;
+}
+
+.trial-chart {
+  width: 100%;
+  height: 80px;
+  stroke: var(--fg);
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.trial-chart circle {
+  fill: var(--fg);
+  stroke: none;
+}
+
+.btn.on {
+  border-color: var(--line);
+  font-weight: 700;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+}
+
+/* The current choice is shown as selected, not as unavailable. */
+.btn.on:disabled {
+  opacity: 1;
+  border-width: calc(var(--line-width) * 2);
+  font-weight: 700;
+}
+
+.seg .btn {
+  width: auto;
+  flex: 1 1 0;
+}
+
+.pre {
+  white-space: pre-wrap;
 }
 
 /* ---- Install guide ---- */

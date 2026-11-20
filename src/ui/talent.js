@@ -2,19 +2,21 @@
 // (long press to edit), and the slot list (tap to edit or delete).
 // Trial history, role switch and Awaken come in stage 3.
 
-import { el, mount } from '../dom.js';
+import { el, mount, svg } from '../dom.js';
 import { text, raw } from '../text.js';
-import { weekdayLabel } from '../time.js';
+import { weekdayLabel, fromDateKey } from '../time.js';
 import {
-  talentById, attrsOf, slotsOf, saveAttribute, addMetric,
+  state, talentById, attrsOf, slotsOf, saveAttribute, addMetric, mediaById,
 } from '../store.js';
+import { formatValue } from '../model/trials.js';
+import { mediaView } from './media.js';
 import {
   formatN, formatSpeed, knobProgress, positiveInt, positiveNum,
 } from '../model/knobs.js';
 import {
   onLongPress, backButton, bar, openSheet, closeSheet, field, textInput, numberInput, segmented,
 } from './widgets.js';
-import { slotEditSheet } from './sheets.js';
+import { slotEditSheet, roleButtons } from './sheets.js';
 import { rankText } from './home.js';
 import { app } from './app.js';
 
@@ -65,14 +67,54 @@ export function renderTalent(root, talentId) {
     el('span', { class: 'num' }, `${weekdayLabel(s.weekday)} ${s.time}`),
     el('span', { class: 'muted small' }, [s.anchor, text('L43', { min: s.length }), placeLabel(s)].filter(Boolean).join(' · '))));
 
+  // Role switch; Awaken (L19) for a dormant talent.
+  const roleNode = talent.role === 'dormant'
+    ? el('button', {
+      type: 'button',
+      class: 'btn',
+      onclick: () => openSheet(el('div', { class: 'stack' },
+        ...roleButtons(talent, rerender).slice(0, 2),
+        el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03')))),
+    }, raw('L19'))
+    : el('div', { class: 'seg' }, roleButtons(talent, rerender));
+
   mount(root, el('section', { class: 'page fade-in' },
     el('div', { class: 'page-top' }, backButton(() => app.home())),
     el('h1', { class: 'page-title' }, talent.name),
     el('p', { class: 'muted small' }, `${roleLabel(talent.role)} · ${rankText(talent)}`),
+    roleNode,
     el('div', { class: 'section' }, ...attrBlocks),
     el('div', { class: 'section' },
       el('h2', { class: 'section-title' }, L63[2]),
-      ...slotRows)));
+      ...slotRows),
+    trialHistory(talent)));
+}
+
+/** Trial history: values as a line, then each record with its recordings (spec 5.8). */
+function trialHistory(talent) {
+  const records = state.trials.filter((t) => t.talentId === talent.id && t.value !== null && t.value !== undefined);
+  if (!records.length) return null;
+  const values = records.map((r) => Number(r.value));
+  const w = 300;
+  const h = 80;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const x = (i) => (records.length === 1 ? w / 2 : 8 + (i * (w - 16)) / (records.length - 1));
+  const y = (v) => (max === min ? h / 2 : h - 8 - ((v - min) * (h - 16)) / (max - min));
+  const points = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const dots = values.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3"/>`).join('');
+  const chart = svg(`<polyline points="${points}"/>${dots}`, `0 0 ${w} ${h}`);
+  chart.classList.add('trial-chart');
+
+  const rows = records.slice().reverse().map((r) => el('div', { class: 'attr-block' },
+    el('span', { class: 'num' }, `${monthDay.format(fromDateKey(r.date))} · ${formatValue(talent, r.value)}`),
+    mediaView(mediaById(r.recordingId)),
+    mediaView(mediaById(r.fullRecordingId))));
+
+  return el('div', { class: 'section' },
+    el('h2', { class: 'section-title' }, raw('L63')[3]),
+    chart,
+    ...rows);
 }
 
 /** Long press on an attribute: edit name, material, N, speed and targets (spec 6.6). */

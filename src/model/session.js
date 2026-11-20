@@ -111,7 +111,7 @@ export function finishSession({ active, feedback, state, attr, now }) {
     feedback: active.size === 'mini' ? null : feedback,
     expGained: exp,
     crit: null,
-    evidenceId: null,
+    evidenceId: active.evidenceId || null,
   };
 
   // Player: EXP, level, practice days.
@@ -127,6 +127,7 @@ export function finishSession({ active, feedback, state, attr, now }) {
     lastPracticedAt: endedAt,
     practiceDays: p.practiceDays + (newDay ? 1 : 0),
     seenExplanations: [...seen],
+    returnActive: false, // the return card disappears after one finished session
   };
   const lvAfter = levelFromExp(player.totalExp);
 
@@ -158,7 +159,11 @@ export function finishSession({ active, feedback, state, attr, now }) {
   }
   if (reachedTarget) results.push({ key: 'S16', vars: { material: nextAttr.material }, materialPrompt: true });
   if (lvAfter > lvBefore) results.push({ key: 'S17', vars: { old: lvBefore, new: lvAfter } });
-  if (winNow) results.push({ key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } });
+  if (winNow) {
+    results.push({ key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } });
+    // Offer a 30-sec record on a weekly win, unless one was already saved in this session (Deep cool-down).
+    if (!active.evidenceId) results.push({ key: 'S19', evidencePrompt: true });
+  }
 
   return { session, attr: nextAttr, player, week, results, knob: knobKind(nextAttr) };
 }
