@@ -3,11 +3,13 @@
 // Update behavior (spec section 2):
 // - The app always opens from the cached version right away.
 // - The browser checks sw.js in the background. A new version installs and downloads all files,
-//   then waits. It takes over only when every window of the app is closed, so the new version
-//   appears on the next open. No skipWaiting, no clients.claim, no reload, no prompt.
+//   then waits. No prompt, and never a reload while the app is in use.
+// - On the next open, the page sees the waiting version before showing anything and sends
+//   'skipWaiting' (see main.js). iOS often keeps a swiped-away Home Screen app alive, so waiting
+//   for "all windows closed" alone is not reliable there.
 // - Only old caches are deleted on activate. IndexedDB (user data) is never touched here.
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const CACHE = `talent-rpg-${VERSION}`;
 
 const FILES = [
@@ -50,6 +52,10 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

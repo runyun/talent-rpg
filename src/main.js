@@ -21,10 +21,33 @@ let screen = null;
 function registerWorker() {
   if (!('serviceWorker' in navigator)) return;
   // updateViaCache: 'none' makes the browser always fetch the latest sw.js to check for a new version.
-  // The new version waits and is used on the next open (see sw.js).
+  // The new version downloads in the background and waits for the next open (see sw.js).
   navigator.serviceWorker.register('sw.js', { scope: './', updateViaCache: 'none' }).catch((err) => {
     console.warn('Service worker registration failed', err);
   });
+}
+
+/**
+ * Called once at startup, before anything is shown. If a new version finished downloading
+ * during an earlier open, switch to it now and reload once. Returns true when reloading.
+ * Never called later, so the app is not reloaded while in use or when it returns from the background.
+ */
+async function applyWaitingUpdate() {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return false;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg || !reg.waiting) return false;
+    const switched = new Promise((resolve) => {
+      navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
+      setTimeout(resolve, 3000);
+    });
+    reg.waiting.postMessage('skipWaiting');
+    await switched;
+    window.location.reload();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function show(name) {
@@ -86,6 +109,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 async function boot() {
+  if (await applyWaitingUpdate()) return;
   registerWorker();
 
   const db = await openDb();

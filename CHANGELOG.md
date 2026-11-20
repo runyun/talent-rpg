@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Fix: a new version now reliably takes over on the next open. On iOS a swiped-away Home Screen app often stays alive, so the waiting version never activated. At startup, before anything is shown, the app now switches to a downloaded version and reloads once. Never during use.
+
 ## 0.2.0 (stage-2)
 
 - First use: welcome card, then add the first talent.
