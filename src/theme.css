@@ -1,0 +1,244 @@
+/* Visual base (spec section 3).
+   Every theme only changes these variables; layout and motion stay the same.
+   Default theme: Pure Black. */
+
+:root,
+[data-theme="pureBlack"] {
+  --bg: #000000;
+  --fg: #ffffff;
+  --muted: #8a8a8a;           /* 6.2:1 on black, WCAG AA */
+  --line: #ffffff;
+  --accent-bg: #ffffff;       /* inverted: Start button and rank-up screen only */
+  --accent-fg: #000000;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --line-width: 1px;
+  --radius: 0;
+  --fade: 250ms;              /* all motion <= 300ms */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Follow the iOS text size setting (Dynamic Type). */
+  font: -apple-system-body;
+  font-family: var(--font);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.4;
+  /* No text selection or system menu on long press (spec section 2). */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  font: inherit;
+  color: inherit;
+}
+
+#app {
+  padding:
+    calc(env(safe-area-inset-top) + 12px)
+    calc(env(safe-area-inset-right) + 16px)
+    calc(env(safe-area-inset-bottom) + 16px)
+    calc(env(safe-area-inset-left) + 16px);
+}
+
+/* ---- Building blocks ---- */
+
+.mono,
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.85em;
+}
+
+.frame {
+  border: var(--line-width) solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 14px 16px;
+  border: var(--line-width) solid var(--line);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn-primary {
+  background: var(--accent-bg);
+  color: var(--accent-fg);
+  border-color: var(--accent-bg);
+}
+
+.btn-text {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 8px;
+  min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.fade-in {
+  animation: fade-in var(--fade) ease-out both;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in { animation: none; }
+}
+
+/* ---- Home ---- */
+
+.focus {
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+.card {
+  flex: 0 0 auto;
+  min-height: 46dvh;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
+.card .line1 {
+  font-size: 0.9em;
+}
+
+.focus-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section {
+  padding-top: 32px;
+}
+
+.section-title {
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.row {
+  border-top: var(--line-width) solid var(--line);
+  padding: 14px 0;
+}
+
+.row h3 {
+  font-size: 1em;
+  margin: 0 0 6px;
+}
+
+.row p {
+  margin: 0 0 8px;
+}
+
+/* ---- Install guide ---- */
+
+.install {
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+}
+
+.install-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.install-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.install-step svg {
+  width: 56px;
+  height: 56px;
+  stroke: var(--fg);
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.install-arrow svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--muted);
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.install .focus-bottom {
+  margin-top: 0;
+}

@@ -1,0 +1,12 @@
+# Local-only project documents (never commit)
+docs/
+CLAUDE.md
+
+# Local tool settings
+.claude/settings.local.json
+
+# Dependencies and OS files
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini
