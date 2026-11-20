@@ -89,6 +89,14 @@ export const S = {
 
   // Added in the app: S04 without an anchor (the time is exact, so no "around").
   S65: 'Next training slot: {day} {time}',
+
+  // Added in the app: System Vault "Rules & verification" page (spec 5.11).
+  S66: 'Each ticket has 3 different numbers from 1 to 14. A draw opens every 3 days at 00:00 and picks 3 numbers. A ticket joins the next draw after it is made.',
+  S67: 'Chance per ticket: jackpot (3 numbers match) 1/364, prize (2 numbers match) 33/364.',
+  S68: 'Each ticket adds 1 Mana Stone to the pool. Jackpot winners share the whole pool, rounded down; the rest stays. With no jackpot, the pool carries over. Prizes do not come from the pool.',
+  S69: 'How the numbers are drawn: the draw date and every ticket of the draw (owner, time, numbers; sorted by owner, then time) are joined into one text. Its SHA-256 hash is read byte by byte. Bytes of 252 or more are skipped; each other byte gives (byte mod 14) + 1. Repeats are skipped until there are 3 numbers. If the hash runs out, it is hashed again.',
+  S70: 'Owner 0 is you. Owners 1-30 are the companions, in the order of their profiles.',
+  S71: 'Draw #{draw} · {date}: {a} · {b} · {c} | {count} tickets | Pool {pool}',
 };
 
 // Practice patterns. *_MINI are the mini variants from the notes column.
@@ -207,6 +215,7 @@ export const L = {
   // Added in the app (not yet in the copy sheet):
   L71: 'sec', // unit for Performance length
   L72: 'Back', // back button (accessibility label of the back arrow)
+  L73: 'Mana Stone ×{n}', // vault prize and prices
 
   L70: [
     'Sessions vs planned',

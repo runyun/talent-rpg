@@ -4,13 +4,16 @@ import { openDb, requestPersistence, touchOpen, put } from './db.js';
 import { el, mount } from './dom.js';
 import { text, raw } from './text.js';
 import {
-  state, loadState, loadActive, savePlayer, applyUpdates, saveWorld,
+  state, loadState, loadActive, savePlayer, applyUpdates, saveWorld, practicesSince, saveVaultCatchUp,
 } from './store.js';
 import { plateauUpdates, returnUpdates } from './model/plateau.js';
 import { renderTrial, leaveTrial } from './ui/trial.js';
 import { stopPlaying, isPlaying } from './ui/media.js';
 import { renderCompanion, renderGreeting, needsGreeting } from './ui/companions.js';
 import { initialWorld, catchUp } from './model/companionSim.js';
+import { vaultCatchUp } from './model/vault.js';
+import { renderVaultRules } from './ui/vault.js';
+import { applyTheme } from './ui/appearance.js';
 import { dateKey } from './time.js';
 import { app } from './ui/app.js';
 import { isStandalone, renderInstall } from './ui/install.js';
@@ -34,16 +37,62 @@ function registerWorker() {
   });
 }
 
+// Note kept on the phone: "a new version finished downloading during an earlier open".
+const UPDATE_READY_KEY = 'talent-rpg-update-ready';
+
+function readUpdateNote() {
+  try {
+    return localStorage.getItem(UPDATE_READY_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeUpdateNote(on) {
+  try {
+    if (on) localStorage.setItem(UPDATE_READY_KEY, '1');
+    else localStorage.removeItem(UPDATE_READY_KEY);
+  } catch {
+    // storage unavailable: the update then waits until the app is fully closed
+  }
+}
+
+/** Leave the note as soon as a new version is downloaded and waiting (during this open). */
+async function watchForUpdate() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    const note = () => { if (reg.waiting) writeUpdateNote(true); };
+    note();
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      if (w) w.addEventListener('statechange', () => { if (w.state === 'installed') note(); });
+    });
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Called once at startup, before anything is shown. If a new version finished downloading
- * during an earlier open, switch to it now and reload once. Returns true when reloading.
- * Never called later, so the app is not reloaded while in use or when it returns from the background.
+ * during an EARLIER open (the note), switch to it now and reload once. A version that finished
+ * downloading while this open was starting waits for the next open (spec section 2).
+ * Returns true when reloading. Never called later, so the app is not reloaded while in use.
  */
 async function applyWaitingUpdate() {
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return false;
   try {
     const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg || !reg.waiting) return false;
+    if (!reg || !reg.waiting) {
+      writeUpdateNote(false); // nothing waiting (or it already took over): forget old notes
+      return false;
+    }
+    if (!readUpdateNote()) {
+      writeUpdateNote(true); // downloaded just now: use it on the next open
+      return false;
+    }
+    writeUpdateNote(false);
     const switched = new Promise((resolve) => {
       navigator.serviceWorker.addEventListener('controllerchange', resolve, { once: true });
       setTimeout(resolve, 3000);
@@ -73,6 +122,26 @@ async function dailyChecks() {
   const plateau = plateauUpdates(state, now);
   await applyUpdates(plateau);
   await companionCatchUp(now);
+  await vaultCatchUpNow(now);
+}
+
+/** Companion tickets and every draw that is due (spec 7.8: computed at each open). */
+async function vaultCatchUpNow(now) {
+  const since = state.vault
+    ? state.vault.ticketedThrough
+    : dateKey(new Date(state.player.firstOpenedAt - 86400000));
+  const practices = await practicesSince(since);
+  const out = await vaultCatchUp({
+    vault: state.vault,
+    world: state.world,
+    practices,
+    tickets: state.tickets,
+    firstOpenedAt: state.player.firstOpenedAt,
+    now,
+  });
+  const changed = !state.vault || out.newTickets.length || out.draws.length
+    || JSON.stringify(out.vault) !== JSON.stringify(state.vault);
+  if (changed) await saveVaultCatchUp(out);
 }
 
 /** Simulate the companions from the last simulated day up to today (spec 7.9). */
@@ -125,6 +194,12 @@ app.addTalent = ({ onboarding = false } = {}) => {
   }));
 };
 
+app.vaultRules = () => {
+  show('vaultRules');
+  window.scrollTo(0, 0);
+  renderVaultRules(root);
+};
+
 app.companion = (id) => {
   show('companion');
   window.scrollTo(0, 0);
@@ -173,11 +248,13 @@ document.addEventListener('visibilitychange', async () => {
 async function boot() {
   if (await applyWaitingUpdate()) return;
   registerWorker();
+  watchForUpdate();
 
   const db = await openDb();
   requestPersistence();
   await touchOpen(db);
   await loadState(db);
+  applyTheme(state.player.equipped && state.player.equipped.theme);
 
   // Validation metric (spec 4.12): one record per open.
   state.openedAt = Date.now();

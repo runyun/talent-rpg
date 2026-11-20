@@ -16,6 +16,9 @@ export const state = {
   media: [], // recordings, photos and text (blobs are loaded lazily by the browser)
   world: null, // companions: { global, companions: [30 states] }
   feed: [], // feed items of the last 8 days
+  vault: null, // { id: 'state', startDraw, lastDraw, carry, ticketedThrough }
+  tickets: [],
+  draws: [],
   openMetricId: null,
   startPressedThisOpen: false,
 };
@@ -36,6 +39,10 @@ export async function loadState(db) {
   state.trials = trials.sort((a, b) => a.at - b.at);
   state.media = media.sort((a, b) => a.createdAt - b.createdAt);
   await loadWorld();
+  const [vaultRecs, tickets, draws] = await Promise.all([getAll(db, 'vault'), getAll(db, 'tickets'), getAll(db, 'draws')]);
+  state.vault = vaultRecs.find((r) => r.id === 'state') || null;
+  state.tickets = tickets;
+  state.draws = draws.sort((a, b) => a.draw - b.draw);
   state.player = player;
   state.settings = settings;
   state.talents = talents.sort((a, b) => a.createdAt - b.createdAt);
@@ -206,14 +213,27 @@ export async function saveEvidence(media, sessionId, keep) {
 }
 
 /** Commit a finished session with all its effects in one transaction. */
-export async function commitSession({ session, attr, player, week }) {
-  await transact(state.db, ['sessions', 'attributes', 'player', 'weeks', 'meta'], (tx) => {
+export async function commitSession({
+  session, attr, player, week, tickets = [], revealed = [],
+}) {
+  const ids = [];
+  await transact(state.db, ['sessions', 'attributes', 'player', 'weeks', 'meta', 'tickets', 'draws'], (tx) => {
     tx.objectStore('sessions').put(session);
     if (attr) tx.objectStore('attributes').put(attr);
     tx.objectStore('player').put(player);
     if (week) tx.objectStore('weeks').put(week);
     tx.objectStore('meta').delete('activeSession');
+    for (const t of tickets) {
+      const req = tx.objectStore('tickets').add(t);
+      req.onsuccess = () => ids.push(req.result);
+    }
+    for (const d of revealed) tx.objectStore('draws').put(d);
   });
+  tickets.forEach((t, i) => state.tickets.push({ ...t, id: ids[i] }));
+  for (const d of revealed) {
+    const i = state.draws.findIndex((x) => x.draw === d.draw);
+    if (i !== -1) state.draws[i] = d;
+  }
   state.sessions.push(session);
   if (attr) state.attrs.get(attr.talentId)[attr.index] = attr;
   state.player = player;
@@ -257,6 +277,30 @@ export async function saveWorld(world, items) {
 export async function addFeedItem(item) {
   await transact(state.db, ['feed'], (tx) => tx.objectStore('feed').add(item));
   state.feed.push(item);
+}
+
+/** All companion practice items since a date (for vault tickets; the in-memory feed only keeps 8 days). */
+export async function practicesSince(dateKeyExclusive) {
+  const items = await getAll(state.db, 'feed', 'date', IDBKeyRange.lowerBound(dateKeyExclusive, true));
+  return items.filter((x) => x.type === 'practice');
+}
+
+/** Save the vault catch-up: new companion tickets, computed draws, vault state, feed items. */
+export async function saveVaultCatchUp({ vault, newTickets, draws, feedItems }) {
+  const ids = [];
+  await transact(state.db, ['vault', 'tickets', 'draws', 'feed'], (tx) => {
+    tx.objectStore('vault').put(vault);
+    for (const t of newTickets) {
+      const req = tx.objectStore('tickets').add(t);
+      req.onsuccess = () => ids.push(req.result);
+    }
+    for (const d of draws) tx.objectStore('draws').put(d);
+    for (const f of feedItems) tx.objectStore('feed').add(f);
+  });
+  newTickets.forEach((t, i) => state.tickets.push({ ...t, id: ids[i] }));
+  state.draws.push(...draws);
+  state.vault = vault;
+  if (feedItems.length) await loadFeed();
 }
 
 export async function saveSettings(settings) {

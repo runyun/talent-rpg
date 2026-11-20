@@ -8,6 +8,10 @@ import { applyFeedback, formatKnob, knobKind } from './knobs.js';
 import { easierCopy, expFor, sizeMinutes, taskSentence } from './tasks.js';
 import { orderAttributes } from './card.js';
 import { weekStats } from './schedule.js';
+import { makeRng } from '../rng.js';
+import {
+  autoNumbers, drawFor, releasePending, revealDraws,
+} from './vault.js';
 
 /** EXP needed to go from Lv L to L+1 (spec 6.11). */
 export function expForLevel(lv) {
@@ -133,6 +137,53 @@ export function finishSession({ active, feedback, state, attr, now }) {
   };
   const lvAfter = levelFromExp(player.totalExp);
 
+  // Critical hit (spec 7.5): Standard/Deep answered "Just right" or "Too hard", 1 in 5.
+  const vaultActive = !!p.vaultUnlocked && !(state.settings && state.settings.vaultOn === false);
+  let critLine = null;
+  if (active.size !== 'mini' && (feedback === 'justRight' || feedback === 'tooHard')) {
+    const r = makeRng(`${active.id}|${active.startedAt}`);
+    if (r() < CONFIG.crit.chance) {
+      const ticket = p.vaultUnlocked && r() >= CONFIG.crit.stoneShareAfterUnlock && vaultActive;
+      if (ticket) {
+        session.crit = { type: 'ticket', n: CONFIG.crit.ticketAmount };
+        critLine = { key: 'S15' };
+      } else {
+        session.crit = { type: 'stones', n: CONFIG.crit.stoneAmount };
+        player.magicStones = (player.magicStones || 0) + CONFIG.crit.stoneAmount;
+        critLine = { key: 'S14' };
+      }
+    }
+  }
+
+  // Your vault tickets (spec 7.7): 1 per Standard/Deep session, plus a critical-hit ticket.
+  const tickets = [];
+  if (vaultActive && active.size !== 'mini') {
+    const lucky = state.settings && state.settings.luckyNumbers;
+    const numbers = (seq) => (lucky && lucky.length === 3 ? lucky.slice().sort((a, b) => a - b) : autoNumbers(`ticket|${active.id}|${seq}`));
+    tickets.push({ draw: drawFor(endedAt), owner: 0, numbers: numbers(0), createdAt: endedAt, seq: 0 });
+    if (session.crit && session.crit.type === 'ticket') tickets.push({ draw: drawFor(endedAt), owner: 0, numbers: numbers(1), createdAt: endedAt, seq: 1 });
+  }
+
+  // Pending jackpot release (Standard/Deep), then draws revealed at this session (spec 7.8).
+  const vaultLines = [];
+  let releaseLine = null;
+  if (active.size !== 'mini') {
+    const rel = releasePending(player);
+    if (rel) {
+      Object.assign(player, rel.player);
+      releaseLine = rel.line;
+    }
+  }
+  let revealed = [];
+  const unrevealed = (state.draws || []).filter((d) => !d.revealed).sort((a, b) => a.draw - b.draw);
+  if (unrevealed.length) {
+    const rv = revealDraws(player, unrevealed);
+    Object.assign(player, rv.player);
+    vaultLines.push(...rv.lines);
+    revealed = unrevealed.map((d) => ({ ...d, revealed: true }));
+  }
+  if (releaseLine) vaultLines.push(releaseLine);
+
   // Week: the win counts at the moment it happens.
   const wk = weekKey(new Date(active.startedAt));
   const before = weekStats(wk, state, now);
@@ -160,6 +211,7 @@ export function finishSession({ active, feedback, state, attr, now }) {
     });
   }
   if (reachedTarget) results.push({ key: 'S16', vars: { material: nextAttr.material }, materialPrompt: true });
+  if (critLine) results.push(critLine);
   if (lvAfter > lvBefore) results.push({ key: 'S17', vars: { old: lvBefore, new: lvAfter } });
   if (winNow) results.push({ key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } });
 
@@ -175,6 +227,9 @@ export function finishSession({ active, feedback, state, attr, now }) {
     results.push({ congrats: 'C4', vars: { talent: talentName } });
   }
 
+  // Vault results (S41-S45) after the congratulations.
+  results.push(...vaultLines);
+
   // Offer a 30-sec record on a weekly win, unless one was already saved in this session (Deep cool-down).
   if (winNow && !active.evidenceId) results.push({ key: 'S19', evidencePrompt: true });
 
@@ -183,5 +238,7 @@ export function finishSession({ active, feedback, state, attr, now }) {
     ? { date: dateKey(new Date(endedAt)), time: hmOf(endedAt), type: 'you', companionId: null, key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } }
     : null;
 
-  return { session, attr: nextAttr, player, week, results, feedItem, knob: knobKind(nextAttr) };
+  return {
+    session, attr: nextAttr, player, week, results, feedItem, tickets, revealed, knob: knobKind(nextAttr),
+  };
 }

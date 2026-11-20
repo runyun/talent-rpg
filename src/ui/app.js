@@ -10,4 +10,5 @@ export const app = {
   finish: () => {},
   trial: () => {},
   companion: () => {},
+  vaultRules: () => {},
 };

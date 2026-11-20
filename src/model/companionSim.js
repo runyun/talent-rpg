@@ -112,7 +112,7 @@ export function catchUp(world, today) {
 
 // ---- Feed (spec 7.11) ----
 
-const ORDER = ['you', 'event', 'rankUp', 'breakthrough', 'return'];
+const ORDER = ['you', 'event', 'jackpot', 'rankUp', 'breakthrough', 'return'];
 
 /** Up to 10 items for one day: your milestones, events, rank-ups, returns, then random practices. */
 export function selectFeed(items, day) {

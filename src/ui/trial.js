@@ -7,7 +7,7 @@ import { text, raw } from '../text.js';
 import { CONFIG } from '../config.js';
 import { MINUTE, dateKey, fromDateKey, hm } from '../time.js';
 import {
-  state, attrsOf, talentById, newId, saveTrial, applyUpdates, mediaById, addFeedItem,
+  state, attrsOf, talentById, newId, saveTrial, applyUpdates, mediaById, addFeedItem, savePlayer,
 } from '../store.js';
 import { congratsBlock } from './companions.js';
 import {
@@ -275,6 +275,12 @@ async function finishTrial(ctx) {
   const box = el('section', { class: `finish results fade-in${passed && (result.rankUp || result.star) ? ' inverse' : ''}` },
     lines.map((l, i) => el('p', { class: i === 0 ? 'task' : '' }, l)));
   mount(ctx.root, box);
+
+  // The System Vault opens the first time any talent reaches Rank D (spec 7.3).
+  if (passed && result.rankUp && !state.player.vaultUnlocked && rankIndex(t.rank) >= rankIndex('D')) {
+    await savePlayer({ ...state.player, vaultUnlocked: true });
+    box.append(el('p', {}, text('S40')));
+  }
 
   // Companions: C2 on rank up (plus your milestone in the feed); C4 when this pass breaks a plateau.
   const seed = `trial|${t.id}|${now.getTime()}`;

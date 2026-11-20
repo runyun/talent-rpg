@@ -9,7 +9,7 @@
 //   for "all windows closed" alone is not reliable there.
 // - Only old caches are deleted on activate. IndexedDB (user data) is never touched here.
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 const CACHE = `talent-rpg-${VERSION}`;
 
 const FILES = [
@@ -39,6 +39,9 @@ const FILES = [
   './src/model/session.js',
   './src/model/tasks.js',
   './src/model/trials.js',
+  './src/model/vault.js',
+  './src/ui/appearance.js',
+  './src/ui/vault.js',
   './src/ui/app.js',
   './src/ui/addTalent.js',
   './src/ui/companions.js',

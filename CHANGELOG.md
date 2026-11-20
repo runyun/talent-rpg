@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 (stage-5)
+
+- Critical hit: Standard/Deep answered "Just right" or "Too hard", 1 in 5, seeded by the session. Mana Stone ×5 before the vault opens; after that, half stones and half a vault ticket (stones when the vault is off).
+- System Vault opens the first time a talent reaches Rank D. One ticket per Standard/Deep session plus critical-hit tickets (only while the vault is open and on). Companions get one ticket for each day they practice, from the first open on. Each ticket adds 1 stone to the pool.
+- Draws every 3 days at 00:00 (draw 1 = 2026-01-04). Numbers come from SHA-256 of the draw date and the draw's tickets; all due draws are computed at each open, only after the companions are simulated up to the day before. Jackpot (3 numbers) splits the pool, rounded down; prize (2 numbers) gives 10 stones or a title frame. Your jackpot goes to Pending and adds the next legendary title.
+- Results are revealed only at your next finished session (S41-S43 for one draw, one S44 line for several); no "almost". Pending jackpots release 1/5 of the total after each Standard/Deep session (S45). Companion jackpots appear in the feed (S46).
+- Vault section on Home (next draw, pool, your tickets, recent draws) and the Rules & verification page (rules, odds, pool, algorithm, every ticket of a draw, Recompute this draw). Draws you have not been shown yet stay hidden there.
+- Settings: System Vault on/off (switches recorded for the validation data) and Lucky numbers (3 of 1-14, or Auto pick).
+- Appearance: Mana Stones, 12 themes (colors, fonts and lines only; all pass WCAG AA), 8 badges, 8 title frames, legendary titles; buy with stones and use. The badge and the title (in its frame) show in the top row.
+- Fix: a version that finished downloading while the app was starting no longer takes over on that same open; it waits for the next open (spec section 2).
+
 ## 0.4.0 (stage-4)
 
 - Data schema v3 with a migration from v2: breakthrough flag on attributes, first-meeting flag on the player, Companions setting kept.

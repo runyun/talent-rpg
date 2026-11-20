@@ -15,6 +15,8 @@ import {
 import { eligibility, nextDue, formatValue } from '../model/trials.js';
 import { mediaView } from './media.js';
 import { renderFeedSection, companionsOn } from './companions.js';
+import { renderVaultSection, luckyLabel, luckyNumbersSheet } from './vault.js';
+import { renderAppearanceSection, badgeIcon, titleNode } from './appearance.js';
 import { decideCard, orderAttributes } from '../model/card.js';
 import { instancesForWeek, isOnTime, instanceStatus } from '../model/schedule.js';
 import {
@@ -77,7 +79,10 @@ export function renderHome(root) {
     cardUi = { id, size: null, shift: 0, message };
   }
 
-  const nodes = [renderFocus(card, now), renderTalents(), renderWeek(now), renderArchive(), renderFeedSection(), renderSettings()].filter(Boolean);
+  const nodes = [
+    renderFocus(card, now), renderTalents(), renderWeek(now), renderArchive(), renderFeedSection(),
+    renderVaultSection(), renderAppearanceSection(), renderSettings(),
+  ].filter(Boolean);
   mount(root, ...nodes);
   cardUi.message = null;
 }
@@ -88,7 +93,10 @@ function renderFocus(card, now) {
   const p = state.player;
   const main = state.talents.find((t) => t.role === 'main');
   const top = el('div', { class: 'top-row' },
-    el('span', { class: 'num' }, text('S50', { lv: levelFromExp(p.totalExp), talent: main && main.name, rank: main && main.rank })),
+    el('span', { class: 'top-left' },
+      badgeIcon((p.equipped && p.equipped.badge) || 'circle'),
+      el('span', { class: 'num' }, text('S50', { lv: levelFromExp(p.totalExp), talent: main && main.name, rank: main && main.rank })),
+      titleNode(p)),
     el('span', { class: 'num' }, text('S51', { done: card.week.done, planned: card.week.planned })));
 
   const notes = [];
@@ -462,9 +470,30 @@ function renderSettings() {
       },
     }, onOff[i]))));
 
+  // System Vault on/off (5.10 item 2) and lucky numbers (item 3).
+  const vaultOn = !(state.settings && state.settings.vaultOn === false);
+  const vaultToggle = el('div', { class: 'row setting-row' },
+    el('h3', {}, items[1]),
+    el('div', { class: 'seg' }, [true, false].map((v, i) => el('button', {
+      type: 'button',
+      class: `seg-btn${vaultOn === v ? ' on' : ''}`,
+      'aria-pressed': vaultOn === v ? 'true' : 'false',
+      onclick: async () => {
+        if (vaultOn === v) return;
+        await saveSettings({ ...state.settings, vaultOn: v });
+        addMetric({ type: 'toggle', what: 'vault', on: v, at: Date.now() });
+        app.home();
+      },
+    }, onOff[i]))));
+  const lucky = el('div', { class: 'row setting-row' },
+    el('h3', {}, items[2]),
+    el('button', { type: 'button', class: 'btn num', onclick: () => luckyNumbersSheet(() => app.home()) }, luckyLabel()));
+
   return el('section', { class: 'section' },
     el('h2', { class: 'section-title' }, titles[6]),
     companionsToggle,
+    vaultToggle,
+    lucky,
     el('div', { class: 'row' },
       el('h3', {}, items[5]),
       el('p', {}, text('S54')),
