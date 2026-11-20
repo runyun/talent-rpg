@@ -84,4 +84,25 @@ function decideTaskCard(state, now, week, { skipSunday = false } = {}) {
   return { type: 'empty', week };
 }
 
+/** Non-dormant talents with a task, other than talentId (the L77 list, spec 6.4 item 4). */
+export function otherTalents(state, talentId) {
+  return state.talents
+    .filter((t) => t.id !== talentId && t.role !== 'dormant' && hasTask(state, t.id))
+    .sort((a, b) => roleOrder(a) - roleOrder(b) || a.createdAt - b.createdAt);
+}
+
+/**
+ * The slot instance a switched-to talent counts for (spec 6.3): this week's next instance
+ * not done yet; in its slot first, then past ones, then later ones. Null = extra practice.
+ * Returns { inst, mode: 'in' | 'past' | 'upcoming' } or null.
+ */
+export function instanceForTalent(state, talentId, now) {
+  const mine = instancesForWeek(weekKey(now), state).filter((i) => i.talent.id === talentId && !i.done);
+  for (const mode of ['in', 'past', 'upcoming']) {
+    const found = mine.filter((i) => instanceStatus(i, now) === mode).sort((a, b) => a.start - b.start)[0];
+    if (found) return { inst: found, mode };
+  }
+  return null;
+}
+
 export { instancesForWeek };

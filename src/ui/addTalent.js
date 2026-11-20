@@ -1,5 +1,5 @@
-// Add a talent (spec 5.6). One scrolling form; Save at the bottom.
-// The baseline test (step 7) comes with recording in stage 3.
+// Add a talent (spec 5.6). One scrolling form in 4 sections (L84); every field has one
+// help line under it (S91-S104). Save at the bottom, then the baseline test (main.js).
 
 import { el } from '../dom.js';
 import { text, raw } from '../text.js';
@@ -16,7 +16,6 @@ import {
 
 const LEVELS = ['beginner', 'basic', 'intermediate'];
 const METRICS = ['speed', 'mistakes', 'lengthOrCount', 'time'];
-const PLACES = ['home', 'commute', 'work', 'custom'];
 
 export function roleLimits(now = Date.now()) {
   const early = now - state.player.firstOpenedAt < CONFIG.roles.earlyWeeks * 7 * DAY;
@@ -33,10 +32,6 @@ export function roleOptions(excludeTalentId = null) {
   ];
 }
 
-export function placeOptions() {
-  return PLACES.map((p, i) => ({ value: p, label: raw('L53')[i] }));
-}
-
 export function lengthOptions() {
   return [15, 45].map((m) => ({ value: m, label: text('L43', { min: m }) }));
 }
@@ -45,8 +40,13 @@ export function weekdayOptions() {
   return [1, 2, 3, 4, 5, 6, 7].map((d) => ({ value: d, label: raw('L55')[d + 1] }));
 }
 
+/** One muted help line under a field. Lists in the copy (" · ") show one item per line. */
+export function help(key) {
+  return el('p', { class: 'help' }, text(key).split(' · ').flatMap((part, i) => (i ? [el('br'), part] : [part])));
+}
+
 /**
- * The slot fields of spec 5.6 step 6: days (several), anchor, time, length, place.
+ * The slot fields of spec 5.6 section 4: days (several), anchor, time, length.
  * All picked days share the other fields. Also used to add slots on the talent page (spec 5.8).
  * Returns { node, days(), build(talentId, now) }.
  */
@@ -58,8 +58,6 @@ export function newSlotsForm() {
   const anchorInput = textInput('', { maxlength: 40 });
   const time = timePicker(lastSlot ? lastSlot.time : '20:00');
   const lengthSeg = segmented(lengthOptions(), 15);
-  const placeText = textInput('', { maxlength: 40, hidden: true });
-  const placeSeg = segmented(placeOptions(), 'home', (v) => { placeText.hidden = v !== 'custom'; });
 
   function updateWarn(days) {
     const early = Date.now() - state.player.firstOpenedAt < CONFIG.slots.warnWeeks * 7 * DAY;
@@ -69,10 +67,9 @@ export function newSlotsForm() {
 
   const node = el('div', { class: 'stack' },
     field(L62[0], daysSeg.node),
-    field(L62[1], anchorInput),
+    field(L62[1], anchorInput, help('S103')),
     field(L62[2], time.node),
-    field(L62[3], lengthSeg.node),
-    field(L62[4], placeSeg.node, placeText),
+    field(L62[3], lengthSeg.node, help('S104')),
     warn);
 
   return {
@@ -85,52 +82,60 @@ export function newSlotsForm() {
       anchor: anchorInput.value.trim(),
       time: time.value,
       length: lengthSeg.value,
-      place: placeSeg.value,
-      placeText: placeSeg.value === 'custom' ? placeText.value.trim() : '',
       overrides: {},
       createdAt: now,
     })),
   };
 }
 
+function section(title, ...children) {
+  return el('div', { class: 'form-section' }, el('h2', { class: 'section-title' }, title), ...children);
+}
+
+const HELP_BY_ATTRIBUTE = ['S93', 'S94', 'S95', 'S96'];
+
 /** renderAddTalent({ onboarding, onDone(talent), onCancel }) */
 export function renderAddTalent({ onboarding, onDone, onCancel }) {
   const openedAt = Date.now();
   const L61 = raw('L61');
   const L49 = raw('L49');
+  const L84 = raw('L84');
 
   let level = 'beginner';
 
-  // Name
+  // 1. Talent: name and level
   const nameInput = textInput('', { maxlength: 60 });
-
-  // Level
   const levelSeg = segmented(LEVELS.map((v, i) => ({ value: v, label: raw('L50')[i] })), level, (v) => {
     level = v;
     refreshDefaults();
   });
 
-  // Attributes
+  // 2. What to practice: one row per attribute, Start on the right (prefilled from the level)
   const attrRows = L49.map((label, index) => {
-    const material = textInput('', { maxlength: 120 });
-    const n = numberInput(defaultN(index, level).n);
+    const material = textInput('', { maxlength: 120, 'aria-label': label });
+    const n = numberInput(defaultN(index, level).n, { 'aria-label': `${label} · ${L61[2]}` });
     let nEdited = false;
     n.addEventListener('input', () => { nEdited = true; });
-    const unit = index === 1 ? el('span', { class: 'muted' }, raw('L71')) : null;
+    const unit = index === 1 ? el('span', { class: 'muted small' }, raw('L71')) : null;
     const row = { index, material, n, isEdited: () => nEdited };
+    const start = el('div', { class: 'attr-start' },
+      index === 0 ? el('span', { class: 'field-label' }, L61[2]) : null,
+      el('div', { class: 'inline' }, n, unit));
     const children = [
-      el('div', { class: 'attr-head' }, el('span', {}, label)),
-      material,
-      el('div', { class: 'inline' }, n, unit),
+      el('span', { class: 'attr-name' }, label),
+      help(HELP_BY_ATTRIBUTE[index]),
+      el('div', { class: 'attr-line' }, material, start),
     ];
+    if (index === 0) children.push(help('S97'));
     if (index === 0) {
+      // Speed: optional; empty = no speed knob. The prefilled start speed is only a gray hint.
       row.speed = numberInput('', { placeholder: String(startValues(level).bpm) });
       row.speedUnitText = textInput('', { maxlength: 20, hidden: true });
       row.speedUnit = segmented(raw('L52').map((l, i) => ({ value: i === 0 ? 'bpm' : 'custom', label: l })), 'bpm', (v) => {
         row.speedUnitText.hidden = v !== 'custom';
         row.speed.placeholder = v === 'bpm' ? String(startValues(level).bpm) : '';
       });
-      children.push(field(L61[3], el('div', { class: 'inline' }, row.speed), row.speedUnit.node, row.speedUnitText));
+      children.push(field(L61[3], el('div', { class: 'inline' }, row.speed), row.speedUnit.node, row.speedUnitText, help('S98')));
     }
     row.node = el('div', { class: 'attr-row' }, ...children);
     return row;
@@ -143,16 +148,18 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
     }
   }
 
-  // Trial piece
+  // 3. Trial: piece, measure by, unit
   const pieceInput = textInput('', { maxlength: 80 });
   const metricSeg = segmented(METRICS.map((v, i) => ({ value: v, label: raw('L51')[i] })), 'speed');
   const metricUnit = textInput('', { maxlength: 20 });
 
-  // Role
+  // 4. Role and slots
   const roles = roleOptions();
   const defaultRole = (roles.find((r) => !r.disabled) || roles[2]).value;
   const roleSeg = segmented(roles, defaultRole);
-  const roleNotes = el('p', { class: 'muted small' }, roles.filter((r) => r.disabled).map((r) => `${r.label}: ${r.note}`).join(' · '));
+  const roleNotes = roles.some((r) => r.disabled)
+    ? el('p', { class: 'muted small' }, roles.filter((r) => r.disabled).map((r) => `${r.label}: ${r.note}`).join(' · '))
+    : null;
 
   const slotForm = newSlotsForm();
 
@@ -205,14 +212,19 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
 
   return el('section', { class: 'form fade-in' },
     el('div', { class: 'form-top' }, cancel, el('span', { class: 'section-title' }, raw('L20'))),
-    field(L61[0], nameInput),
-    field(L61[1], levelSeg.node),
-    el('div', { class: 'field' }, el('span', { class: 'field-label' }, L61[2]), ...attrRows.map((r) => r.node)),
-    field(L61[4], pieceInput),
-    field(L61[5], metricSeg.node),
-    field(L61[6], metricUnit),
-    field(L61[7], roleSeg.node, roleNotes),
-    el('div', { class: 'field' }, el('span', { class: 'field-label' }, L61[8]), slotForm.node),
+    section(L84[0],
+      field(L61[0], nameInput),
+      field(L61[1], levelSeg.node, help('S91'))),
+    section(L84[1],
+      help('S92'),
+      ...attrRows.map((r) => r.node)),
+    section(L84[2],
+      field(L61[4], pieceInput, help('S99')),
+      field(L61[5], metricSeg.node, help('S100')),
+      field(L61[6], metricUnit, help('S101'))),
+    section(L84[3],
+      field(L61[7], roleSeg.node, roleNotes, help('S102')),
+      el('div', { class: 'field' }, el('span', { class: 'field-label' }, L61[8]), slotForm.node)),
     el('div', { class: 'form-bottom' }, save),
   );
 }

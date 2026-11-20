@@ -2,7 +2,10 @@
 // (Keeps screens from importing each other.)
 
 export const app = {
-  home: () => {},
+  home: () => {}, // Today
+  tab: () => {}, // tab(name): 'today' | 'talents' | 'world' | 'me'
+  back: () => {}, // back arrow of a page: the tab it was opened from
+  refresh: () => {}, // draw the current screen again
   welcome: () => {},
   addTalent: () => {},
   talent: () => {},
@@ -11,4 +14,8 @@ export const app = {
   trial: () => {},
   companion: () => {},
   vaultRules: () => {},
+  appearance: () => {},
+  guide: () => {},
+  settings: () => {},
+  validation: () => {},
 };

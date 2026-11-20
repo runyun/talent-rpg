@@ -45,7 +45,7 @@ export function renderVaultSection() {
     el('span', { class: 'muted small' }, resultLabel(d) || '')));
 
   return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, raw('L60')[4]),
+    el('h2', { class: 'section-title' }, raw('L60')[3]),
     row(L67[0], `${fmtDate(drawDate(next))} 00:00`),
     row(L67[1], String(currentPool(state.vault, state.tickets, now))),
     row(L67[2], String(mine.length)),
@@ -62,7 +62,7 @@ export function renderVaultRules(root, selected = null) {
   const current = draws.find((d) => d.draw === selected) || draws[0] || null;
 
   const parts = [
-    el('div', { class: 'page-top' }, backButton(() => app.home())),
+    el('div', { class: 'page-top' }, backButton(() => app.back())),
     el('h1', { class: 'page-title' }, raw('L37')),
     ...['S66', 'S67', 'S68', 'S69', 'S70'].map((k) => el('p', {}, text(k))),
   ];
@@ -71,7 +71,7 @@ export function renderVaultRules(root, selected = null) {
     parts.push(el('div', { class: 'seg' }, draws.map((d) => el('button', {
       type: 'button',
       class: `seg-btn num${d.draw === current.draw ? ' on' : ''}`,
-      onclick: () => renderVaultRules(root, d.draw),
+      onclick: () => app.vaultRules(d.draw),
     }, `#${d.draw}`))));
     const [a, b, c] = current.numbers;
     parts.push(el('p', { class: 'num' }, text('S71', {

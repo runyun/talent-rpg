@@ -1,127 +1,275 @@
-/* Visual base (spec section 3).
-   Every theme only changes these variables; layout and motion stay the same.
-   Default theme: Pure Black. */
+/* Visual base (spec section 3, copy sheet part 6).
+   Every theme uses black, white and gray only. Themes differ only in the 9 theme variables below;
+   layout, button positions and sizes, and text stay the same.
+   A [data-theme] attribute works on <html> and on any element (Appearance previews), so every
+   value that depends on another variable is set again on each themed element. */
 
 :root,
-[data-theme="pureBlack"] {
+[data-theme] {
+  /* 1. Background (text and secondary gray follow it) */
   --bg: #000000;
   --fg: #ffffff;
-  --muted: #8a8a8a;           /* 6.2:1 on black, WCAG AA */
-  --line: #ffffff;
-  --accent-bg: #ffffff;       /* inverted: Start button and rank-up screen only */
-  --accent-fg: #000000;
-  --muted-inverse: #595959;   /* secondary text on the inverted (rank-up) screen */
+  --muted: #8a8a8a;           /* dark backgrounds: #8a8a8a; light backgrounds: #595959 (WCAG AA) */
+  --muted-inverse: #595959;   /* secondary text on the inverted screen (rank up) */
+  --tex: rgba(255, 255, 255, 0.06);
+
+  /* 2. Font */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-heading: var(--font);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
-  --line-width: 1px;
+
+  /* 3. Weight and case */
+  --weight: 400;
+  --heading-weight: 600;
+  --label-case: uppercase;    /* section titles, field labels, tabs */
+  --title-case: none;         /* page titles */
+  --tracking: 0.04em;
+
+  /* 4. Tag symbols ([TRIAL] in the copy) */
+  --tag-open: "[";
+  --tag-close: "]";
+  --tag-weight: inherit;
+
+  /* 5. Lines */
   --line-style: solid;
-  --radius: 0;
-  --fade: 250ms;              /* all motion <= 300ms */
-  --font-serif: ui-serif, "New York", Georgia, serif;
+  --line-width: 1px;
+
+  /* 6. Corners */
+  --radius: 0px;
+
+  /* 7. Texture (background only) */
+  --texture: none;
+  --texture-size: auto;
+
+  /* 8. Start button (inverted solid by default) */
+  --start-open: "";
+  --start-close: "";
+  --start-case: none;
+  --start-border-style: solid;
+  --start-border-width: 1px;
+  --start-shadow: none;
+
+  /* 10. Entrance motion (all <= 300ms) */
+  --enter: fade-in;
+  --enter-child: none;
+  --fade: 250ms;
+
+  /* Derived from the variables above (resolved on each themed element). */
+  --line: var(--fg);
+  --accent-bg: var(--fg);     /* inverted = the opposite of the background */
+  --accent-fg: var(--bg);
+  --start-bg: var(--fg);
+  --start-fg: var(--bg);
+  --start-line: var(--fg);
 }
 
-/* ---- Themes (copy sheet part 6). Colors, fonts and lines only; layout and motion are the same.
-   Every pair (text, secondary text, Start text) meets WCAG AA (4.5:1). ---- */
+/* Shared looks */
 
-[data-theme="terminal"] {
-  --bg: #000000; --fg: #33ff66; --muted: #1fae4a; --line: #33ff66;
-  --accent-bg: #33ff66; --accent-fg: #000000; --muted-inverse: #0b3d1a;
-  --font: var(--font-mono);
-}
-
-[data-theme="amberScreen"] {
-  --bg: #120d04; --fg: #ffb000; --muted: #c08a2a; --line: #ffb000;
-  --accent-bg: #ffd27a; --accent-fg: #120d04; --muted-inverse: #4a3510;
-  --font: var(--font-mono); --line-style: dashed;
-}
-
-[data-theme="notebook"] {
-  --bg: #f7f3e8; --fg: #1c2a4a; --muted: #55607a; --line: #1c2a4a;
-  --accent-bg: #b3261e; --accent-fg: #ffffff; --muted-inverse: #f3d9d6;
-}
-
-[data-theme="washi"] {
-  --bg: #f3ead7; --fg: #1a1a1a; --muted: #5c5446; --line: #1a1a1a;
-  --accent-bg: #b3121f; --accent-fg: #ffffff; --muted-inverse: #f6d6d0;
-  --font: var(--font-serif);
-}
-
-[data-theme="newspaper"] {
-  --bg: #eeece6; --fg: #111111; --muted: #4a4a4a; --line: #111111;
-  --accent-bg: #111111; --accent-fg: #eeece6; --muted-inverse: #bdbab2;
-}
-
-[data-theme="blueprint"] {
-  --bg: #0b2a4a; --fg: #ffffff; --muted: #9cc9ff; --line: #9cc9ff;
-  --accent-bg: #ffffff; --accent-fg: #0b2a4a; --muted-inverse: #3b5675;
-}
-
-[data-theme="nightSky"] {
-  --bg: #141432; --fg: #f2ead8; --muted: #b5aec8; --line: #e6c97a;
-  --accent-bg: #e6c97a; --accent-fg: #141432; --muted-inverse: #4a4126;
-  --radius: 10px;
-}
-
-[data-theme="forest"] {
-  --bg: #10241a; --fg: #efe9da; --muted: #a8b59a; --line: #9bb36b;
-  --accent-bg: #9bb36b; --accent-fg: #10241a; --muted-inverse: #2c3a1c;
-  --radius: 10px;
-}
-
-[data-theme="neon"] {
-  --bg: #000000; --fg: #ffffff; --muted: #b0b0b0; --line: #ff2fb3;
-  --accent-bg: #22e5ff; --accent-fg: #000000; --muted-inverse: #0d4a52;
-}
-
+[data-theme="amberScreen"],
+[data-theme="notebook"],
+[data-theme="washi"],
+[data-theme="newspaper"],
 [data-theme="daylight"] {
-  --bg: #ffffff; --fg: #000000; --muted: #595959; --line: #000000;
-  --accent-bg: #000000; --accent-fg: #ffffff; --muted-inverse: #b3b3b3;
+  --fg: #000000;
+  --muted: #595959;
+  --muted-inverse: #8a8a8a;
+  --tex: rgba(0, 0, 0, 0.06);
 }
 
-[data-theme="highContrast"] {
-  --bg: #000000; --fg: #ffeb00; --muted: #ffffff; --line: #ffffff;
-  --accent-bg: #ffffff; --accent-fg: #000000; --muted-inverse: #333333;
+/* 1 Pure Black (default): the values above. */
+
+/* 2 Terminal */
+[data-theme="terminal"] {
+  --font: var(--font-mono);
+  --font-heading: var(--font-mono);
+  --label-case: uppercase;
+  --title-case: uppercase;
+  --tracking: 0.12em;
+  --tag-open: "\258C";
+  --tag-close: "";
+  --line-style: dotted;
+  --start-open: "[\00a0";
+  --start-close: "\00a0]";
+  --start-case: uppercase;
+  --start-bg: transparent;
+  --start-fg: var(--fg);
+  --enter: unfold;
+}
+
+/* 3 Typewriter (code amberScreen) */
+[data-theme="amberScreen"] {
+  --bg: #ececec;
+  --font: var(--font-mono);
+  --font-heading: var(--font-mono);
+  --label-case: none;
+  --tracking: normal;
+  --tag-open: "\2039";
+  --tag-close: "\203A";
+  --line-style: dashed;
+  --start-open: "[\00a0";
+  --start-close: "\00a0]";
+  --start-case: uppercase;
+  --start-bg: transparent;
+  --start-fg: var(--fg);
+  --enter: none;
+}
+
+/* 4 Notebook */
+[data-theme="notebook"] {
+  --bg: #ffffff;
+  --font: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  --font-heading: var(--font);
+  --label-case: none;
+  --tracking: normal;
+  --radius: 16px;
+  --texture: linear-gradient(to bottom, var(--tex) 1px, transparent 1px);
+  --texture-size: 100% 28px;
+  --enter: unfold;
+}
+
+/* 5 Ink (code washi) */
+[data-theme="washi"] {
+  --bg: #f2f2f2;
+  --font: ui-serif, "New York", Georgia, serif;
+  --font-heading: var(--font);
+  --label-case: none;
+  --tracking: normal;
+  --tag-open: "\27E6";
+  --tag-close: "\27E7";
+  --radius: 6px;
+}
+
+/* 6 Newspaper */
+[data-theme="newspaper"] {
+  --bg: #f2f2f2;
+  --font-heading: ui-serif, "New York", Georgia, serif;
+  --heading-weight: 700;
+  --label-case: uppercase;
+  --title-case: uppercase;
+  --tag-open: "";
+  --tag-close: "";
+  --tag-weight: 700;
+  --line-style: double;
   --line-width: 3px;
+  --start-border-style: double;
+  --start-border-width: 4px;
+  --start-bg: transparent;
+  --start-fg: var(--fg);
+  --enter: none;
 }
 
-/* Theme details that are lines and fonts only. */
-[data-theme="neon"] body,
-[data-theme="highContrast"] body {
-  font-weight: 600;
+/* 7 Blueprint */
+[data-theme="blueprint"] {
+  --bg: #1a1a1a;
+  --tex: rgba(255, 255, 255, 0.03);
+  --weight: 300;
+  --line-style: dashed;
+  --texture: linear-gradient(var(--tex) 1px, transparent 1px), linear-gradient(90deg, var(--tex) 1px, transparent 1px);
+  --texture-size: 24px 24px;
+  --start-border-style: double;
+  --start-border-width: 4px;
+  --start-bg: transparent;
+  --start-fg: var(--fg);
+  --enter: none;
+  --enter-child: fade-in 150ms ease-out 150ms both;
 }
 
-[data-theme="neon"] .frame {
-  outline: 1px solid #22e5ff;
-  outline-offset: 2px;
+/* 8 Midnight (code nightSky) */
+[data-theme="nightSky"] {
+  --bg: #0d0d0d;
+  --font: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  --font-heading: var(--font);
+  --weight: 300;
+  --label-case: none;
+  --tracking: normal;
+  --tag-open: "";
+  --tag-close: "";
+  --tag-weight: 700;
+  --line-style: dotted;
+  --radius: 16px;
+  --texture: radial-gradient(var(--tex) 1px, transparent 1.5px);
+  --texture-size: 16px 16px;
 }
 
-[data-theme="notebook"] .card {
-  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, rgba(70, 120, 200, 0.18) 27px, rgba(70, 120, 200, 0.18) 28px);
+/* 9 Stone (code forest) */
+[data-theme="forest"] {
+  --bg: #1a1a1a;
+  --font: ui-serif, "New York", Georgia, serif;
+  --font-heading: var(--font);
+  --label-case: uppercase;
+  --title-case: uppercase;
+  --tracking: 0.12em;
+  --tag-open: "\27E6";
+  --tag-close: "\27E7";
+  --line-style: double;
+  --line-width: 3px;
+  --radius: 6px;
+  --start-bg: var(--bg);
+  --start-fg: var(--fg);
+  --start-border-width: 2px;
+  --start-shadow: 4px 4px 0 var(--fg);
+  --enter: none;
+  --enter-child: fade-in 150ms ease-out 150ms both;
 }
 
-[data-theme="newspaper"] .section-title,
-[data-theme="newspaper"] .page-title {
-  font-family: var(--font-serif);
+/* 10 Arcade (code neon) */
+[data-theme="neon"] {
+  --font: var(--font-mono);
+  --font-heading: var(--font-mono);
+  --weight: 700;
+  --heading-weight: 700;
+  --label-case: uppercase;
+  --title-case: uppercase;
+  --tag-open: "\2039";
+  --tag-close: "\203A";
+  --line-width: 2px;
+  --texture: radial-gradient(var(--tex) 1px, transparent 1.5px);
+  --texture-size: 16px 16px;
+  --start-bg: var(--bg);
+  --start-fg: var(--fg);
+  --start-border-width: 2px;
+  --start-shadow: 4px 4px 0 var(--fg);
+  --enter: none;
 }
 
-[data-theme="newspaper"] .section {
-  border-top: 4px double var(--line);
-  margin-top: 24px;
+/* 11 Daylight */
+[data-theme="daylight"] {
+  --bg: #ffffff;
 }
 
-[data-theme="blueprint"] body {
-  background-image:
-    linear-gradient(rgba(156, 201, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(156, 201, 255, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+/* 12 High Contrast */
+[data-theme="highContrast"] {
+  --weight: 700;
+  --heading-weight: 700;
+  --label-case: uppercase;
+  --title-case: uppercase;
+  --line-width: 3px;
+  --start-border-width: 3px;
+  --enter: none;
 }
 
-[data-theme="washi"] .btn-start.btn-invert {
-  box-shadow: inset 0 0 0 4px var(--accent-bg), inset 0 0 0 5px var(--accent-fg);
+/* A themed element paints its own background, texture and font (Appearance previews). */
+[data-theme] {
+  background-color: var(--bg);
+  background-image: var(--texture);
+  background-size: var(--texture-size);
+  color: var(--fg);
+  font-family: var(--font);
+  font-weight: var(--weight);
 }
 
-[data-theme="terminal"] .card .task::after {
-  content: "_";
+/* System tags: the theme's symbols around the tag text. */
+.sys-tag {
+  font-weight: var(--tag-weight);
+  white-space: nowrap;
+}
+
+.sys-tag::before {
+  content: var(--tag-open);
+}
+
+.sys-tag::after {
+  content: var(--tag-close);
 }
 
 *,
@@ -144,9 +292,12 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: var(--texture);
+  background-size: var(--texture-size);
   color: var(--fg);
   font-family: var(--font);
+  font-weight: var(--weight);
   line-height: 1.4;
   /* No text selection or system menu on long press (spec section 2). */
   -webkit-user-select: none;
@@ -164,12 +315,67 @@ textarea {
   color: inherit;
 }
 
+/* Safe area (spec section 2): content starts 12pt below the status bar. A fixed opaque strip
+   covers the status bar area, so nothing ever shows under it, even while a page scrolls. */
+:root {
+  --top-pad: calc(env(safe-area-inset-top) + 12px);
+  --tabbar-h: 56px;
+  --bottom-space: calc(env(safe-area-inset-bottom) + 16px);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: #000000;
+  z-index: 30;
+}
+
 #app {
   padding:
-    calc(env(safe-area-inset-top) + 12px)
+    var(--top-pad)
     calc(env(safe-area-inset-right) + 16px)
-    calc(env(safe-area-inset-bottom) + 16px)
+    var(--bottom-space)
     calc(env(safe-area-inset-left) + 16px);
+}
+
+/* With the tab bar (spec 5.0): leave room for it above the Home indicator. */
+body.with-tabs #app {
+  --bottom-space: calc(env(safe-area-inset-bottom) + var(--tabbar-h) + 16px);
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bg);
+  border-top: var(--line-width) var(--line-style) var(--line);
+}
+
+.tab {
+  flex: 1 1 0;
+  height: var(--tabbar-h);
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8em;
+  text-transform: var(--label-case);
+  letter-spacing: var(--tracking);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tab.on {
+  color: var(--fg);
+  font-weight: 700;
 }
 
 /* ---- Building blocks ---- */
@@ -216,11 +422,24 @@ textarea {
   font-weight: 700;
 }
 
-/* Inverted (white on black) is only for Start and the rank-up screen (spec section 3). */
+/* The Start button: its look comes from the theme (spec 3, Start button style).
+   Position, full width and height never change. */
 .btn-invert {
-  background: var(--accent-bg);
-  color: var(--accent-fg);
-  border-color: var(--accent-bg);
+  background: var(--start-bg);
+  color: var(--start-fg);
+  border-color: var(--start-line);
+  border-style: var(--start-border-style);
+  border-width: var(--start-border-width);
+  box-shadow: var(--start-shadow);
+  text-transform: var(--start-case);
+}
+
+.btn-invert::before {
+  content: var(--start-open);
+}
+
+.btn-invert::after {
+  content: var(--start-close);
 }
 
 .inverse {
@@ -252,8 +471,19 @@ html:has(.inverse) body {
   cursor: pointer;
 }
 
+/* Entrance motion from the theme: fade in, unfold from the top, frame first, or none.
+   All <= 300ms, no flashing; none at all with Reduce Motion. */
 .fade-in {
-  animation: fade-in var(--fade) ease-out both;
+  animation-name: var(--enter);
+  animation-duration: var(--fade);
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+/* "Frame first": frames show at once, their content follows. */
+.fade-in.frame > *,
+.fade-in .frame > * {
+  animation: var(--enter-child);
 }
 
 @keyframes fade-in {
@@ -261,17 +491,27 @@ html:has(.inverse) body {
   to { opacity: 1; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .fade-in { animation: none; }
+@keyframes unfold {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
 }
 
-/* ---- Home ---- */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .fade-in.frame > *,
+  .fade-in .frame > * {
+    animation: none !important;
+  }
+}
+
+/* ---- Today (spec 5.1): one screen high, never scrolls ---- */
 
 .focus {
-  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  height: calc(100dvh - var(--top-pad) - var(--bottom-space));
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .top-row {
@@ -280,16 +520,49 @@ html:has(.inverse) body {
   gap: 12px;
   font-size: 0.85em;
   color: var(--muted);
+  flex: 0 0 auto;
 }
 
 .card {
-  flex: 0 0 auto;
-  min-height: 46dvh;
-  margin-top: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 12px;
+}
+
+.focus .card {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 56%;
+  margin-top: auto;
+  overflow-y: auto;
+}
+
+.focus > p {
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.card-switch {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: -8px;
+  flex: 0 0 auto;
+}
+
+.card-switch .btn-text {
+  flex: 1 1 0;
+  padding: 8px 0;
+  text-align: left;
+}
+
+.card-switch .btn-text + .btn-text {
+  text-align: right;
+}
+
+.card-switch .btn-text:disabled {
+  opacity: 0.4;
 }
 
 .card .line1 {
@@ -309,9 +582,10 @@ html:has(.inverse) body {
 
 .section-title {
   font-size: 0.85em;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--tracking);
+  text-transform: var(--label-case);
   color: var(--muted);
   margin: 0 0 12px;
 }
@@ -354,10 +628,17 @@ html:has(.inverse) body {
   position: absolute;
   top: 4px;
   right: 4px;
+  width: 9rem;
+  text-align: right;
 }
 
 .btn-start {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 60px;
+  padding-top: 0;
+  padding-bottom: 0;
   font-size: 1.15em;
 }
 
@@ -373,8 +654,10 @@ html:has(.inverse) body {
 }
 
 .dot {
+  /* Fixed size: buttons keep their size in every theme (spec 3). */
+  width: 84px;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 0;
   border: var(--line-width) var(--line-style) transparent;
   border-radius: 999px;
   background: none;
@@ -440,13 +723,29 @@ html:has(.inverse) body {
 .bar {
   display: block;
   height: 4px;
-  border: var(--line-width) var(--line-style) var(--muted);
+  border: 1px solid var(--muted);
 }
 
 .bar-fill {
   display: block;
   height: 100%;
   background: var(--fg);
+}
+
+/* Segments, dots and text bars: always 10 cells. */
+.bar-cells {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  color: var(--fg);
+}
+
+.bar-cells .off {
+  color: var(--muted);
 }
 
 /* ---- This Week grid ---- */
@@ -520,6 +819,44 @@ html:has(.inverse) body {
 .field-label {
   font-size: 0.85em;
   color: var(--muted);
+  text-transform: var(--label-case);
+  letter-spacing: var(--tracking);
+}
+
+/* One help line under a field (spec 5.6). */
+.help {
+  margin: 0;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 8px;
+  border-top: var(--line-width) var(--line-style) var(--line);
+}
+
+.form-section > .section-title {
+  margin: 8px 0 0;
+}
+
+.attr-line {
+  display: grid;
+  grid-template-columns: 1fr 5.5em;
+  gap: 8px;
+  align-items: end;
+}
+
+.attr-start {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attr-start .inline input {
+  max-width: none;
 }
 
 input[type="text"],
@@ -613,7 +950,7 @@ select:focus {
 .sheet-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 40;
   display: flex;
   align-items: flex-end;
   background: rgba(0, 0, 0, 0.6);
@@ -651,6 +988,10 @@ select:focus {
 
 .page-title {
   font-size: 1.5em;
+  font-family: var(--font-heading);
+  font-weight: var(--heading-weight);
+  text-transform: var(--title-case);
+  letter-spacing: var(--tracking);
   margin: 8px 0 4px;
   overflow-wrap: anywhere;
 }
@@ -683,7 +1024,7 @@ select:focus {
 
 .timer,
 .finish {
-  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  min-height: calc(100dvh - var(--top-pad) - var(--bottom-space));
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -957,8 +1298,10 @@ textarea {
 .frame-doubleBrackets::after { content: "\27E7"; }
 
 .item-head {
-  margin: 18px 0 4px;
+  margin: 18px 0 8px;
   font-weight: 400;
+  text-transform: var(--label-case);
+  letter-spacing: var(--tracking);
 }
 
 .item-row {
@@ -986,25 +1329,6 @@ textarea {
   height: 20px;
 }
 
-.swatch {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid;
-}
-
-.swatch-pureBlack { background: #000; border-color: #fff; }
-.swatch-terminal { background: #000; border-color: #33ff66; }
-.swatch-amberScreen { background: #120d04; border-color: #ffb000; border-style: dashed; }
-.swatch-notebook { background: #f7f3e8; border-color: #b3261e; }
-.swatch-washi { background: #f3ead7; border-color: #b3121f; }
-.swatch-newspaper { background: #eeece6; border-color: #111; border-style: double; border-width: 4px; }
-.swatch-blueprint { background: #0b2a4a; border-color: #9cc9ff; }
-.swatch-nightSky { background: #141432; border-color: #e6c97a; border-radius: 6px; }
-.swatch-forest { background: #10241a; border-color: #9bb36b; border-radius: 6px; }
-.swatch-neon { background: #000; border-color: #ff2fb3; outline: 1px solid #22e5ff; }
-.swatch-daylight { background: #fff; border-color: #000; }
-.swatch-highContrast { background: #000; border-color: #ffeb00; border-width: 3px; }
 
 .ticket-line {
   margin: 0;
@@ -1038,7 +1362,7 @@ textarea {
 /* ---- Install guide ---- */
 
 .install {
-  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  min-height: calc(100dvh - var(--top-pad) - var(--bottom-space));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1105,4 +1429,212 @@ textarea {
   max-width: 320px;
   margin: 0 auto;
   border: 1px solid currentColor;
+}
+
+/* ---- Tabs and pages (stage 7) ---- */
+
+.section-first {
+  padding-top: 8px;
+}
+
+.nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 0;
+  border: none;
+  border-top: var(--line-width) var(--line-style) var(--line);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attr-name {
+  font-weight: 600;
+}
+
+.sunday {
+  flex: 1 1 auto;
+  min-height: 0;
+  justify-content: flex-end;
+}
+
+.offscreen {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  opacity: 0;
+}
+
+/* ---- Guide ---- */
+
+.guide-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: var(--line-width) var(--line-style) var(--line);
+}
+
+.guide-block h3 {
+  font-size: 1em;
+  margin: 0;
+}
+
+.guide-block p {
+  margin: 0;
+}
+
+/* ---- Validation Check ---- */
+
+.check-table {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+}
+
+.check-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: var(--line-width) var(--line-style) var(--muted);
+}
+
+.check-row p {
+  margin: 0;
+}
+
+.check-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.check-line .num {
+  font-family: inherit;
+  overflow-wrap: anywhere;
+}
+
+.check-status {
+  flex: 0 0 auto;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ---- Appearance previews (spec 5.13) ---- */
+
+.preview-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.preview-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preview-grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.preview-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile-name {
+  overflow-wrap: anywhere;
+}
+
+.theme-preview {
+  display: block;
+  padding: 10px;
+  border: 1px solid var(--muted);
+}
+
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  font-size: 0.75em;
+}
+
+.preview-tag {
+  display: block;
+}
+
+.btn.preview-start {
+  min-height: 0;
+  padding: 6px 8px;
+  font-size: 1em;
+}
+
+.theme-preview.big {
+  padding: 16px;
+}
+
+.theme-preview.big .preview-card {
+  gap: 14px;
+  padding: 20px 16px;
+  font-size: 1em;
+}
+
+.theme-preview.big .btn.preview-start {
+  min-height: 60px;
+  padding: 14px 16px;
+  font-size: 1.15em;
+}
+
+.badge-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  color: var(--fg);
+}
+
+.badge-preview .badge {
+  width: 28px;
+  height: 28px;
+}
+
+.badge-preview.big {
+  aspect-ratio: auto;
+  height: 160px;
+}
+
+.badge-preview.big .badge {
+  width: 72px;
+  height: 72px;
+}
+
+.frame-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+}
+
+.preview-big > * {
+  width: 100%;
 }

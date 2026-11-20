@@ -76,8 +76,7 @@ export const S = {
   S54: 'Your data lives only on this iPhone. No backup. Deleting the Home Screen icon deletes the data too.',
   S55: 'Move {count} slots from the old main talent to {talent}?',
   S56: 'This time, raise speed or length by one step and keep 0 mistakes.',
-  S57: 'After you change slots, export again.',
-  S58: '[Training] {talent}',
+  // S57 and S58 were deleted in copy version 14 (calendar export removed); do not reuse.
   S59: '{count} practice days',
   S60: 'EXP comes from every session. It raises your Lv and unlocks nothing.',
   S61: 'Trials decide your rank: a 2-min measured run every 4 weeks (Main) or 8 weeks (Maintain).',
@@ -98,6 +97,46 @@ export const S = {
   S69: 'How the numbers are drawn: the draw date and every ticket of the draw (owner, time, numbers; sorted by owner, then time) are joined into one text. Its SHA-256 hash is read byte by byte. Bytes of 252 or more are skipped; each other byte gives (byte mod 14) + 1. Repeats are skipped until there are 3 numbers. If the hash runs out, it is hashed again.',
   S70: 'Owner 0 is you. Owners 1-30 are the companions, in the order of their profiles.',
   S71: 'Draw #{draw} · {date}: {a} · {b} · {c} | {count} tickets | Pool {pool}',
+
+  // Version 14 additions
+  // Past slot card, muted line above S01 (spec 6.2 item 4).
+  S72: 'Slot time was {day} {time}. Any time this week counts.',
+
+  // Validation data: Check (spec 10.1).
+  S73: 'Based on last week, from {date}.',
+  S74: 'Sessions: {done} of {planned} · Goal: {goal} or more',
+  S75: 'Started within 15 min of the slot: {x}% · Goal: 50% or more',
+  S76: 'Open to Start: {x} sec · Goal: 10 sec or less',
+  S77: 'Just right: {x}% (too easy {a}%, too hard {b}%) · Goal: 50–75%',
+  S78: 'Stress: {x} / 5 on average · Goal: 2.5 or lower',
+  S79: 'Material edits: {count} · Goal: 2 or fewer',
+  S80: 'Adding a talent: {x} sec · Goal: 90 sec or less',
+  S81: 'Last trial: {talent} {metric} {old} → {new}',
+  S82: 'Fewer or shorter slots may fit better. Change them on the Sunday card.',
+  S83: 'Try a different anchor or time for the slots that start late.',
+  S84: 'Starting takes a while. Note what slowed you down.',
+  S85: 'Mostly too easy. Raise the start values or targets with a long press.',
+  S86: 'Mostly too hard. Try Mini more often, or lower the start values with a long press.',
+  S87: 'Try one week with Companions or the Vault off, then compare.',
+  S88: 'Write each material as one concrete item, like "G to C change".',
+  S89: 'Note which fields were unclear.',
+  S90: 'Copied. Paste it into a chat or your notes.',
+
+  // Add talent: one help line under each field (spec 5.6).
+  S91: 'Sets the starting difficulty. You can change it later.',
+  S92: 'One short line each. Fill 1 or 2 to start; empty ones are skipped.',
+  S93: 'A basic move to repeat without mistakes. e.g. G to C chord change',
+  S94: 'A whole piece to do from start to finish. e.g. Twinkle Twinkle',
+  S95: 'Something to record and compare with a model. e.g. my strumming vs the original',
+  S96: 'Things to learn and use, as a plural. e.g. chords',
+  S97: 'How many in a row, or how long, to begin with. Filled in from your level.',
+  S98: "Optional. Leave it empty if speed doesn't apply. BPM turns on a metronome.",
+  S99: 'Every 4 or 8 weeks you record 2 minutes of this and compare it with last time. e.g. Twinkle Twinkle, first 2 min',
+  S100: 'Speed: faster is better · Mistakes: fewer is better · Length or count: more is better · Time: shorter is better',
+  S101: 'What the number counts, e.g. BPM, words, sec.',
+  S102: 'Main: your focus, 3 slots a week, a trial every 4 weeks · Maintain: keep it going, 1 slot a week, a trial every 8 weeks · Dormant: paused, no slots, rank kept',
+  S103: 'A daily moment to start after, e.g. after dinner. Optional.',
+  S104: '15 min: one drill · 45 min: warm-up, drill, cool-down',
 };
 
 // Practice patterns. *_MINI are the mini variants from the notes column.
@@ -198,28 +237,42 @@ export const L = {
   L50: ['Beginner', 'Basic', 'Intermediate'],
   L51: ['Speed', 'Mistakes', 'Length or count', 'Time'],
   L52: ['BPM', 'Custom'],
-  L53: ['Home', 'Commute', 'Work', 'Custom'],
+  // L53 (place) was deleted in copy version 14; do not reuse.
   L54: ['In 1 hour', 'Tonight 21:00', 'Tomorrow, same time'],
   L55: ['Today', 'Tomorrow', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   L56: 'Limit reached: {count}',
 
-  L60: ['Talents', 'This Week', 'Progress Archive', 'Feed', 'System Vault', 'Appearance', 'Settings'],
-  L61: ['Name', 'Level', 'Material', 'Speed', 'Trial piece', 'Main metric', 'Unit', 'Role', 'Training slots'],
-  L62: ['Day', 'Anchor (e.g. after dinner)', 'Time', 'Length', 'Place'],
+  L60: ['This Week', 'Talents', 'Feed', 'System Vault', 'Appearance', 'Guide', 'Settings'],
+  L61: ['Name', 'Level', 'Start', 'Speed (optional)', 'Trial piece', 'Measure by', 'Unit', 'Role', 'Training slots'],
+  L62: ['Day', 'Anchor (optional)', 'Time', 'Length'],
   L63: ['Material history', 'Target', 'Slots', 'Trial history'],
   L64: ['Trials', '30-sec records', 'Pick two to compare'],
   L65: ['Talent', 'Personality', 'Rank', 'Base attendance', 'Preferred time', 'Current event', 'Last 7 days'],
   L66: ['Today', 'Yesterday'],
   L67: ['Next draw', 'Pool', 'Your tickets', 'Recent draws', 'No prize', 'Prize', 'Jackpot'],
   L68: ['Mana Stones', 'Themes', 'Badges', 'Title frames', 'Titles'],
-  L69: ['Companions', 'System Vault', 'Lucky numbers', 'Auto pick', 'Export to Calendar', 'About your data', 'Validation data'],
+  L69: ['Companions', 'System Vault', 'Lucky numbers', 'Auto pick', 'About your data', 'Validation data'],
   // Version 12 additions
   L71: 'sec', // unit for Performance length
   L72: 'Back', // back button (accessibility label of the back arrow)
   L73: 'Mana Stone ×{n}', // vault prize and prices
   L74: 'talent-rpg', // app name under the Home Screen icon; keep manifest.webmanifest and index.html in sync
-  // Added in the app (not yet in the copy sheet):
+  // Version 13 additions
   L75: '+ Add slot', // talent page: add training slots (spec 5.8)
+
+  // Version 14 additions
+  L76: 'Switch attribute', // under the task card (spec 5.1, 6.4)
+  L77: 'Other talent',
+  L78: 'Copy data for review',
+  L79: ['On track', 'Worth a look', 'Not enough data yet'],
+  L80: 'Details',
+  L81: ['Today', 'Talents', 'World', 'Me'], // tab bar (spec 5.0)
+  L82: ['Appearance', 'Guide', 'Settings'], // rows of the Me tab
+  L83: ['Open', 'Locked', 'Off'], // Guide status
+  L84: ['Talent', 'What to practice', 'Trial', 'Role and slots'], // Add talent sections
+
+  // Added in the app (not yet in the copy sheet):
+  L85: 'Material', // talent page: material field of the attribute editor (L61 no longer has it)
 
   L70: [
     'Sessions vs planned',
@@ -236,12 +289,29 @@ export const L = {
   ],
 };
 
+// Guide (spec 5.12): title, text, unlock (null = open from the start).
+export const G = {
+  G01: { title: 'Training slots', text: 'Planned start times for each talent. A slot is a cue, not a deadline: any time that week counts.', unlock: null },
+  G02: { title: 'Sizes', text: '2, 15 or 45 min. All count for the week. Only 15 and 45 change difficulty and count for trials.', unlock: null },
+  G03: { title: 'Difficulty', text: 'After 15 or 45 min, answer Too easy, Just right or Too hard. Two of the same in a row moves the difficulty one step.', unlock: null },
+  G04: { title: 'EXP and Lv', text: 'Every session gives EXP. Lv only goes up and unlocks nothing.', unlock: null },
+  G05: { title: 'Weekly win', text: 'Finish your planned sessions for the week. With 3 or more planned, one fewer is enough.', unlock: null },
+  G06: { title: 'Main, Maintain, Dormant', text: 'Main is your focus. Maintain keeps a talent going. Dormant pauses it and keeps its rank.', unlock: null },
+  G07: { title: 'Trials and Rank', text: 'A 2-min measured run, compared with last time. Passing raises the rank from E to S.', unlock: 'Every 4 weeks for Main and 8 for Maintain, after 3/4 of the planned sessions.' },
+  G08: { title: 'Critical hit', text: 'Sometimes a chest after a session: Mana Stones, or a Vault ticket once the Vault is open.', unlock: 'After a 15 or 45-min session marked Just right or Too hard.' },
+  G09: { title: 'Mana Stones and Appearance', text: 'Spend Mana Stones on themes, badges and title frames.', unlock: 'Your first Mana Stones come from a critical hit.' },
+  G10: { title: 'Plateau Dungeon', text: 'A different method for one week when progress stalls.', unlock: 'When a trial is not passed twice in a row, or a difficulty stays the same for 4 weeks.' },
+  G11: { title: 'Companions', text: '30 virtual companions with their own talents. They congratulate milestones and fill the Feed.', unlock: null },
+  G12: { title: 'System Vault', text: 'A draw every 3 days with a pool shared with the companions. 1 ticket per 15 or 45-min session.', unlock: 'When any talent reaches Rank D.' },
+  G13: { title: 'Class change', text: 'New material for all 4 attributes and a new trial piece.', unlock: 'When a talent reaches Rank C.' },
+};
+
 // Item names.
 export const ITEMS = {
   legendaryTitles: ['Before Dawn', 'The Lamp That Stays Lit', 'The Thousandth Time', 'Quiet Strength', 'The One Who Finished'],
   themes: [
-    'Pure Black', 'Terminal', 'Amber Screen', 'Notebook', 'Washi', 'Newspaper',
-    'Blueprint', 'Night Sky', 'Forest', 'Neon', 'Daylight', 'High Contrast',
+    'Pure Black', 'Terminal', 'Typewriter', 'Notebook', 'Ink', 'Newspaper',
+    'Blueprint', 'Midnight', 'Stone', 'Arcade', 'Daylight', 'High Contrast',
   ],
   badges: ['Circle', 'Square', 'Triangle', 'Diamond', 'Hexagon', 'Double Circle', 'Cross', 'Star'],
   titleFrames: ['Single Line', 'Double Line', 'Dashed', 'Bold', 'Rounded', 'Square Brackets', 'Double Brackets', 'None'],

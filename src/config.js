@@ -99,4 +99,15 @@ export const CONFIG = Object.freeze({
   feed: { perDay: 10, daysBack: 7 },
   evidence: { keepPerTalent: 30, seconds: 30 },
   trialPeriodWeeks: 8,
+
+  // Goals of the validation Check (spec 10.1). The copy (S74-S80) states the same numbers.
+  check: {
+    onTimeRate: 0.5, // at least
+    secondsToStart: 10, // at most
+    justRight: { min: 0.5, max: 0.75 },
+    stress: 2.5, // average at most
+    materialEdits: 2, // per week at most
+    materialEditsFromWeek: 3, // weeks 1-2 are always On track
+    addTalentSec: 90, // at most
+  },
 });

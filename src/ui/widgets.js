@@ -2,6 +2,7 @@
 
 import { el, svg } from '../dom.js';
 import { raw } from '../text.js';
+import { BAR_STYLES, currentTheme } from '../themes.js';
 
 // ---- Bottom sheet ----
 
@@ -177,8 +178,23 @@ export function backButton(onClick) {
   return el('button', { type: 'button', class: 'icon-btn', 'aria-label': raw('L72'), onclick: onClick }, svg(BACK_ICON));
 }
 
-export function bar(progress) {
-  const fill = el('span', { class: 'bar-fill' });
-  fill.style.width = `${Math.round(progress * 100)}%`;
-  return el('span', { class: 'bar' }, fill);
+const BAR_CELLS = 10;
+const CELL_CHARS = { cells: ['▮', '▯'], dots: ['●', '○'], text: ['#', '-'] };
+
+/** Progress bar (0-1) in the theme's style (spec 3); pass a theme code for previews. */
+export function bar(progress, themeCode = currentTheme()) {
+  const p = Math.max(0, Math.min(1, Number(progress) || 0));
+  const style = BAR_STYLES[themeCode] || 'solid';
+  if (style === 'solid') {
+    const fill = el('span', { class: 'bar-fill' });
+    fill.style.width = `${Math.round(p * 100)}%`;
+    return el('span', { class: 'bar' }, fill);
+  }
+  const on = Math.round(p * BAR_CELLS);
+  const [full, empty] = CELL_CHARS[style];
+  return el('span', { class: 'bar-cells', 'aria-hidden': 'true' },
+    style === 'text' ? '[' : null,
+    full.repeat(on),
+    el('span', { class: 'off' }, empty.repeat(BAR_CELLS - on)),
+    style === 'text' ? ']' : null);
 }

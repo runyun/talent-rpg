@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.0 (stage-7)
+
+First round of trial feedback (spec version 14). No data schema change.
+
+- Tab bar: Today, Talents, World, Me. The app always opens on Today. World is hidden when Companions are off and the System Vault is off or still locked. No badges or numbers on the tabs. Timer, finish, trial, Add talent, first use and the rank-up screen stay full screen.
+- Safe area: content starts 12pt below the status bar, and the status bar area is always covered, so nothing scrolls under it. The tab bar sits above the Home indicator.
+- Today fits one screen and never scrolls. A past slot card shows a neutral gray line with the original slot time (S72). New buttons under task cards: "Switch attribute" (up to 2 per card) and "Other talent" (a list of the other active talents with the attribute each would practice; the session counts for that talent's slot this week).
+- Talents tab: This Week and the talent list. The Progress Archive moved to each talent page.
+- Me tab: Mana Stones, then Appearance, Guide and Settings.
+- 12 black-and-white themes (renamed: Typewriter, Ink, Midnight, Stone, Arcade). Each changes only background, font, weight and case, tag symbols, lines, corners, texture, Start style, progress bar style and entrance motion. Button positions and sizes are the same in every theme. No motion with Reduce Motion. Purchased and equipped themes keep working.
+- Appearance shows every theme, badge, title frame and title as it really looks; tap one for a larger preview with Buy or Use.
+- Guide: one block per feature with Open, Locked (and how it unlocks) or Off.
+- Add talent: four sections with one help line under each field. Place is gone from Add talent, slot editing and the talent page (old place data is kept but not used).
+- Export to Calendar removed.
+- Validation data: a Check at the top compares last week with the goals (On track, Worth a look, Not enough data yet) with a suggestion under each "Worth a look". "Copy data for review" copies every table as plain text.
+- Copy: S72-S104, L76-L84 and G01-G13 added; S57, S58 and L53 removed; L60, L61, L62 and L69 updated. New label L85 "Material" (attribute editor on the talent page).
+
 ## 0.6.0 (stage-6)
 
 - Export to Calendar (Settings): one weekly repeating event per slot of every Main or Maintain talent, titled "[Training] {talent}", with the place and length of the slot and no alarms. The file is a standard .ics download; export again after changing slots.

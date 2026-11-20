@@ -6,9 +6,26 @@
 //   Never show blanks or "undefined".
 // - Count 1 uses the singular of the following plural noun; any other count uses the plural.
 
-import { S, P, E, C, L, ITEMS } from './strings.js';
+import { S, P, E, C, L, G, ITEMS } from './strings.js';
 
 const TABLES = [S, P, E, L];
+
+// System tags like [TRIAL] (spec 3): each theme shows them with its own symbols.
+// In the copy they are always written [TAG]. text() marks them with two private-use
+// characters; dom.js turns a marked tag into <span class="sys-tag">TAG</span>, and the
+// theme's CSS adds the symbols. plain() gives the [TAG] form for non-DOM uses (share text).
+export const TAG_OPEN = '\uE000';
+export const TAG_CLOSE = '\uE001';
+const TAG_RE = /\[([A-Z][A-Z ]*[A-Z])\]/g;
+
+function markTags(template) {
+  return template.replace(TAG_RE, (m, name) => `${TAG_OPEN}${name}${TAG_CLOSE}`);
+}
+
+/** Text with marked tags back to the copy form ("[TRIAL] ..."). */
+export function plain(s) {
+  return String(s).replace(/\uE000([^\uE001]*)\uE001/g, '[$1]');
+}
 
 // Plural nouns that appear right after a count in the copy sheet.
 const SINGULAR = {
@@ -112,7 +129,18 @@ export function text(key, vars = {}, index) {
     if (index === undefined) throw new Error(`Text key ${key} is a list; pass an index`);
     entry = entry[index];
   }
-  return fill(entry, vars);
+  return fill(markTags(entry), vars);
+}
+
+/** The tag of a copy entry without its symbols, e.g. tagOf('S01') -> 'TRAINING'. */
+export function tagOf(key) {
+  const m = String(raw(key)).match(/\[([A-Z][A-Z ]*[A-Z])\]/);
+  return m ? m[1] : '';
+}
+
+/** Guide entry (G01-G13): { title, text, unlock }. */
+export function guide(key) {
+  return G[key];
 }
 
 /** Congratulation line by tone: 'gentle' | 'brief' | 'firedUp'. */

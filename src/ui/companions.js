@@ -54,7 +54,7 @@ export function renderFeedSection() {
       })));
   }
   return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, raw('L60')[3]),
+    el('h2', { class: 'section-title' }, raw('L60')[2]),
     ...days);
 }
 
@@ -74,7 +74,7 @@ export function renderCompanion(root, id) {
   const row = (label, value) => el('div', { class: 'profile-row' }, el('span', { class: 'muted small' }, label), el('span', {}, value));
 
   mount(root, el('section', { class: 'page fade-in' },
-    el('div', { class: 'page-top' }, backButton(() => app.home())),
+    el('div', { class: 'page-top' }, backButton(() => app.back())),
     el('p', { class: 'muted small' }, text('S53')),
     el('h1', { class: 'page-title' }, c.title),
     row(L65[0], c.talent),

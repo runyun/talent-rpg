@@ -1,23 +1,21 @@
-// Home: focus area (top row, system card, size dots, Start) and the sections below
-// (Talents, This Week, Settings). Spec 5.1, 5.2, 6.2-6.4, 6.9.
+// Today (spec 5.1, 6.2-6.4, 6.9): top row, system card, switch buttons, size dots, Start.
+// One screen high, no scrolling, nothing about companions.
+// Talents tab (spec 5.2): This Week and the talent list.
 
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
-import { APP_VERSION } from '../version.js';
 import { CONFIG } from '../config.js';
 import {
   DAY, addDays, dateKey, dayLabel, fromDateKey, hm, isoWeekday, weekKey, weekdayLabel, at,
 } from '../time.js';
 import {
-  state, attrsOf, newId, saveActive, savePlayer, saveWeek, weekRecord, updateOpenMetric, saveAttribute, mediaById,
-  saveSettings, addMetric,
+  state, attrsOf, newId, saveActive, savePlayer, saveWeek, weekRecord, updateOpenMetric, saveAttribute,
 } from '../store.js';
-import { eligibility, nextDue, formatValue } from '../model/trials.js';
-import { mediaView } from './media.js';
-import { renderFeedSection, companionsOn } from './companions.js';
-import { renderVaultSection, luckyLabel, luckyNumbersSheet } from './vault.js';
-import { renderAppearanceSection, badgeIcon, titleNode } from './appearance.js';
-import { decideCard, orderAttributes } from '../model/card.js';
+import { eligibility, nextDue } from '../model/trials.js';
+import { badgeIcon, titleNode } from './appearance.js';
+import {
+  decideCard, orderAttributes, otherTalents, instanceForTalent,
+} from '../model/card.js';
 import { instancesForWeek, isOnTime, instanceStatus } from '../model/schedule.js';
 import {
   sizeFromMinutes, sizeLine, sizeMinutes, taskSentence, SIZES,
@@ -25,20 +23,26 @@ import {
 import { knobProgress } from '../model/knobs.js';
 import { buildActive, levelFromExp } from '../model/session.js';
 import { unlockAudio } from '../metronome.js';
-import { onLongPress, onSwipe, bar } from './widgets.js';
+import {
+  onLongPress, onSwipe, bar, openSheet, closeSheet,
+} from './widgets.js';
 import { rescheduleSheet, slotEditSheet, talentMenu } from './sheets.js';
-import { buildIcs } from '../model/ics.js';
 import { app } from './app.js';
 
 // Card UI state survives re-renders while the same card is shown.
-let cardUi = { id: null, size: null, shift: 0, message: null };
+// shift: L76 presses; alt: talent picked with L77 (spec 6.4).
+let cardUi = {
+  id: null, size: null, shift: 0, alt: null, message: null,
+};
+
+const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
 export function rankText(talent) {
   const stars = talent.rank === 'S' && talent.stars ? ` ★${talent.stars}` : '';
   return text('L48', { rank: talent.rank }) + stars;
 }
 
-function roleLabel(role) {
+export function roleLabel(role) {
   return raw({ main: 'L45', maintain: 'L46', dormant: 'L47' }[role]);
 }
 
@@ -71,34 +75,55 @@ function plateauEndNotes() {
   return notes;
 }
 
-export function renderHome(root) {
+// ---------------- Today ----------------
+
+export function renderToday(root) {
   const now = new Date();
   const card = decideCard(state, now);
   const id = cardId(card);
   if (cardUi.id !== id) {
     const message = cardUi.message;
-    cardUi = { id, size: null, shift: 0, message };
+    cardUi = {
+      id, size: null, shift: 0, alt: null, message,
+    };
   }
-
-  const nodes = [
-    renderFocus(card, now), renderTalents(), renderWeek(now), renderArchive(), renderFeedSection(),
-    renderVaultSection(), renderAppearanceSection(), renderSettings(),
-  ].filter(Boolean);
-  mount(root, ...nodes);
+  mount(root, renderFocus(card, now));
   cardUi.message = null;
 }
 
-// ---------------- Focus area ----------------
-
-function renderFocus(card, now) {
+function topRow(card) {
   const p = state.player;
   const main = state.talents.find((t) => t.role === 'main');
-  const top = el('div', { class: 'top-row' },
+  return el('div', { class: 'top-row' },
     el('span', { class: 'top-left' },
       badgeIcon((p.equipped && p.equipped.badge) || 'circle'),
       el('span', { class: 'num' }, text('S50', { lv: levelFromExp(p.totalExp), talent: main && main.name, rank: main && main.rank })),
       titleNode(p)),
     el('span', { class: 'num' }, text('S51', { done: card.week.done, planned: card.week.planned })));
+}
+
+/** The task underneath the card, after an L77 switch (spec 6.3, 6.4 item 4). */
+function switchedTask(task, now) {
+  if (!cardUi.alt) return task;
+  const talent = state.talents.find((t) => t.id === cardUi.alt);
+  if (!talent || talent.role === 'dormant' || !orderAttributes(attrsOf(talent.id)).length) {
+    cardUi.alt = null;
+    return task;
+  }
+  const found = instanceForTalent(state, talent.id, now);
+  if (!found) return { type: 'free', talent, switched: true };
+  return {
+    type: 'slot', mode: found.mode, inst: found.inst, switched: true,
+  };
+}
+
+function taskTalent(task) {
+  return task.type === 'free' ? task.talent : task.inst.talent;
+}
+
+function renderFocus(card, now) {
+  const p = state.player;
+  const top = topRow(card);
 
   const notes = [];
   const sameSlots = sameSlotsNotice(now);
@@ -139,13 +164,16 @@ function renderFocus(card, now) {
 
   // Task cards: slot (in / past), next, free; the return card wraps one of them.
   const isReturn = card.type === 'return';
-  const task = isReturn ? card.base : card;
-  const talent = task.type === 'free' ? task.talent : task.inst.talent;
+  const task = switchedTask(isReturn ? card.base : card, now);
+  const talent = taskTalent(task);
   const ordered = orderAttributes(attrsOf(talent.id));
   const attr = ordered[cardUi.shift % ordered.length];
   const slotMin = task.type === 'free' ? sizeMinutes('standard') : task.inst.slot.length;
-  let defaultSize = card.week.atRisk && task.type !== 'free' ? 'mini' : sizeFromMinutes(slotMin);
-  if (isReturn) defaultSize = 'mini';
+  let defaultSize = sizeFromMinutes(slotMin);
+  if (!task.switched) {
+    if (card.week.atRisk && task.type !== 'free') defaultSize = 'mini';
+    if (isReturn) defaultSize = 'mini';
+  }
   const size = cardUi.size || defaultSize;
 
   const lines = [];
@@ -154,7 +182,11 @@ function renderFocus(card, now) {
     lines.push(el('p', { class: 'small' }, text('S34')));
   }
   if (attr.plateau) lines.push(el('p', { class: 'small' }, text('S31', { talent: talent.name, attribute: attr.name })));
-  if (task.type === 'slot' || isReturn) {
+  if (task.type === 'slot' && task.mode === 'past') {
+    // Neutral note with the original slot time (spec 6.2 item 4): no "missed", no red.
+    lines.push(el('p', { class: 'muted small' }, text('S72', { day: dayLabel(task.inst.start, now), time: hm(task.inst.start) })));
+  }
+  if (task.type === 'slot' || isReturn || task.switched) {
     lines.push(el('p', { class: 'line1' }, text('S01', { talent: talent.name, attribute: attr.name })));
     lines.push(el('p', { class: 'task' }, taskSentence(attr, size)));
     lines.push(el('p', { class: 'muted num' }, sizeLine(size)));
@@ -184,19 +216,30 @@ function renderFocus(card, now) {
     showReschedule ? el('button', { type: 'button', class: 'card-corner btn-text small', onclick: () => openReschedule(task) }, raw('L07')) : null,
     ...lines);
 
+  const canShift = cardUi.shift < 2 && ordered.length >= 2;
+  const switchAttribute = () => {
+    if (!canShift) return;
+    cardUi.shift += 1;
+    app.refresh();
+  };
+  // Swipes stay as shortcuts (spec 5.1 item 6).
   onSwipe(cardNode, {
-    left: () => {
-      if (cardUi.shift >= 2 || ordered.length < 2) return;
-      cardUi.shift += 1;
-      app.home();
-    },
+    left: switchAttribute,
     right: () => {
       if (canReschedule) openReschedule(task);
     },
   });
 
+  // L76 / L77 right under the card (spec 5.1 item 3).
+  const others = otherTalents(state, talent.id);
+  const switchRow = el('div', { class: 'card-switch' },
+    el('button', {
+      type: 'button', class: 'btn-text small', disabled: !canShift || undefined, onclick: switchAttribute,
+    }, raw('L76')),
+    others.length ? el('button', { type: 'button', class: 'btn-text small', onclick: () => otherTalentSheet(others) }, raw('L77')) : null);
+
   const below = [];
-  if (card.week.atRisk && task.type !== 'free' && !isReturn) {
+  if (card.week.atRisk && task.type !== 'free' && !isReturn && !task.switched) {
     below.push(el('p', { class: 'muted small' }, text('S07', { done: card.week.done, planned: card.week.planned })));
   }
 
@@ -206,7 +249,7 @@ function renderFocus(card, now) {
     'aria-pressed': s === size ? 'true' : 'false',
     onclick: () => {
       cardUi.size = s;
-      app.home();
+      app.refresh();
     },
   }, text('L43', { min: sizeMinutes(s) }))));
 
@@ -222,8 +265,29 @@ function renderFocus(card, now) {
     top,
     ...notes,
     cardNode,
+    switchRow,
     ...below,
     el('div', { class: 'focus-bottom' }, dots, ...explain, startBtn));
+}
+
+/** L77: the other non-dormant talents, each with the attribute it would practice (spec 6.4). */
+function otherTalentSheet(others) {
+  openSheet(el('div', { class: 'stack' }, others.map((t) => {
+    const first = orderAttributes(attrsOf(t.id))[0];
+    return el('button', {
+      type: 'button',
+      class: 'list-row',
+      onclick: () => {
+        closeSheet();
+        cardUi.alt = t.id;
+        cardUi.shift = 0;
+        cardUi.size = null;
+        app.refresh();
+      },
+    },
+    el('span', { class: 'talent-name' }, t.name),
+    el('span', { class: 'muted small' }, `${roleLabel(t.role)} · ${first.name}`));
+  })));
 }
 
 /** Validation metric: seconds from opening the app to the first Start (spec 4.12). */
@@ -236,7 +300,7 @@ function markStartPressed() {
 function openReschedule(card) {
   rescheduleSheet(card.inst, (message) => {
     cardUi.message = message;
-    app.home();
+    app.refresh();
   });
 }
 
@@ -286,7 +350,7 @@ function renderSundayCard(now) {
   const rows = next.map((i) => el('button', {
     type: 'button',
     class: 'list-row',
-    onclick: () => slotEditSheet(i.slot, () => app.home()),
+    onclick: () => slotEditSheet(i.slot, () => app.refresh()),
   },
   el('span', {}, i.talent.name),
   el('span', { class: 'num muted' }, `${weekdayLabel(isoWeekday(i.start))} ${hm(i.start)} · ${text('L43', { min: i.slot.length })}`)));
@@ -301,7 +365,7 @@ function renderSundayCard(now) {
       class: `seg-btn num${rec.anxiety === n ? ' on' : ''}`,
       onclick: async () => {
         await saveWeek({ ...weekRecord(wk), anxiety: n });
-        app.home();
+        app.refresh();
       },
     }, String(n)))));
   }
@@ -311,7 +375,7 @@ function renderSundayCard(now) {
     class: 'btn btn-primary btn-start',
     onclick: async () => {
       await saveWeek({ ...weekRecord(wk), nextWeekConfirmed: true });
-      app.home();
+      app.refresh();
     },
   }, raw('L14'));
 
@@ -320,7 +384,12 @@ function renderSundayCard(now) {
     el('div', { class: 'focus-bottom' }, ok));
 }
 
-// ---------------- Talents ----------------
+// ---------------- Talents tab ----------------
+
+export function renderTalentsTab(root) {
+  const now = new Date();
+  mount(root, el('div', { class: 'tab-page fade-in' }, renderWeek(now), renderTalents()));
+}
 
 function renderTalents() {
   const titles = raw('L60');
@@ -342,7 +411,7 @@ function renderTalents() {
         el('span', { class: 'muted small' }, `${roleLabel(t.role)} · ${rankText(t)}`)),
       el('div', { class: 'bars' }, attrs.map((a) => bar(knobProgress(a)))),
       trialLine);
-    onLongPress(row, () => talentMenu(t, () => app.home()), () => app.talent(t.id));
+    onLongPress(row, () => talentMenu(t, () => app.refresh()), () => app.talent(t.id));
     return row;
   });
 
@@ -353,72 +422,12 @@ function renderTalents() {
   }
 
   return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, titles[0]),
+    el('h2', { class: 'section-title' }, titles[1]),
     el('p', { class: 'muted small num' }, text('S59', { count: state.player.practiceDays })),
     ...explain,
     ...rows,
     el('button', { type: 'button', class: 'btn', onclick: () => app.addTalent() }, raw('L20')));
 }
-
-// ---------------- Progress Archive (spec 5.2 item 3) ----------------
-
-const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-let archivePicks = [];
-
-function renderArchive() {
-  const titles = raw('L60');
-  const L64 = raw('L64');
-  const groups = [];
-  const pickable = (record, label) => {
-    const picked = archivePicks.includes(record.id);
-    const pick = el('button', {
-      type: 'button',
-      class: `seg-btn small${picked ? ' on' : ''}`,
-      'aria-pressed': picked ? 'true' : 'false',
-      onclick: () => {
-        archivePicks = picked ? archivePicks.filter((x) => x !== record.id) : [...archivePicks.slice(-1), record.id];
-        app.home();
-      },
-    }, label);
-    return el('div', { class: 'archive-item' }, pick, mediaView(record));
-  };
-
-  for (const t of state.talents) {
-    const trials = state.trials.filter((x) => x.talentId === t.id);
-    const trialItems = [];
-    for (const tr of trials) {
-      const date = monthDay.format(fromDateKey(tr.date));
-      const measured = mediaById(tr.recordingId);
-      if (measured) trialItems.push(pickable(measured, `${date} · ${formatValue(t, tr.value)}`));
-      const full = mediaById(tr.fullRecordingId);
-      if (full) trialItems.push(pickable(full, `${date} · ${tr.piece || t.trialWork}`));
-    }
-    const evidence = state.media
-      .filter((m) => m.talentId === t.id && m.type === 'evidence30s')
-      .map((m) => pickable(m, monthDay.format(fromDateKey(m.date))));
-    if (!trialItems.length && !evidence.length) continue;
-    groups.push(el('div', { class: 'archive-group' },
-      el('h3', {}, t.name),
-      trialItems.length ? el('p', { class: 'muted small' }, L64[0]) : null,
-      ...trialItems,
-      evidence.length ? el('p', { class: 'muted small' }, L64[1]) : null,
-      ...evidence));
-  }
-  if (!groups.length) return null;
-
-  // Two picked records side by side.
-  const picked = archivePicks.map(mediaById).filter(Boolean);
-  const compare = picked.length === 2
-    ? el('div', { class: 'compare frame' }, picked.map((m) => mediaView(m, { label: monthDay.format(fromDateKey(m.date)) })))
-    : el('p', { class: 'muted small' }, L64[2]);
-
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, titles[2]),
-    compare,
-    ...groups);
-}
-
-// ---------------- This Week ----------------
 
 function renderWeek(now) {
   const titles = raw('L60');
@@ -437,83 +446,14 @@ function renderWeek(now) {
           class: `week-cell num${done ? ' done' : ''}`,
           onclick: done ? undefined : () => rescheduleSheet(i, (message) => {
             cardUi.message = message;
-            app.home();
+            app.refresh();
           }),
         }, done ? `✓ ${hm(i.start)}` : hm(i.start));
       });
     return el('div', { class: `week-col${d === today ? ' today' : ''}` },
       el('span', { class: 'week-head small' }, weekdayLabel(d)), ...cells);
   });
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, titles[1]),
+  return el('section', { class: 'section section-first' },
+    el('h2', { class: 'section-title' }, titles[0]),
     el('div', { class: 'week-grid' }, cols));
-}
-
-// ---------------- Settings ----------------
-
-function renderSettings() {
-  const titles = raw('L60');
-  const items = raw('L69');
-  const on = companionsOn();
-  const onOff = raw('L39');
-  // Companions on/off (spec 5.10 item 1). Each switch is recorded for the validation data (spec 10).
-  const companionsToggle = el('div', { class: 'row setting-row' },
-    el('h3', {}, items[0]),
-    el('div', { class: 'seg' }, [true, false].map((v, i) => el('button', {
-      type: 'button',
-      class: `seg-btn${on === v ? ' on' : ''}`,
-      'aria-pressed': on === v ? 'true' : 'false',
-      onclick: async () => {
-        if (on === v) return;
-        await saveSettings({ ...state.settings, companionsOn: v });
-        addMetric({ type: 'toggle', what: 'companions', on: v, at: Date.now() });
-        app.home();
-      },
-    }, onOff[i]))));
-
-  // System Vault on/off (5.10 item 2) and lucky numbers (item 3).
-  const vaultOn = !(state.settings && state.settings.vaultOn === false);
-  const vaultToggle = el('div', { class: 'row setting-row' },
-    el('h3', {}, items[1]),
-    el('div', { class: 'seg' }, [true, false].map((v, i) => el('button', {
-      type: 'button',
-      class: `seg-btn${vaultOn === v ? ' on' : ''}`,
-      'aria-pressed': vaultOn === v ? 'true' : 'false',
-      onclick: async () => {
-        if (vaultOn === v) return;
-        await saveSettings({ ...state.settings, vaultOn: v });
-        addMetric({ type: 'toggle', what: 'vault', on: v, at: Date.now() });
-        app.home();
-      },
-    }, onOff[i]))));
-  const lucky = el('div', { class: 'row setting-row' },
-    el('h3', {}, items[2]),
-    el('button', { type: 'button', class: 'btn num', onclick: () => luckyNumbersSheet(() => app.home()) }, luckyLabel()));
-
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, titles[6]),
-    companionsToggle,
-    vaultToggle,
-    lucky,
-    // Export to Calendar (5.10 item 4, spec 7.12).
-    el('div', { class: 'row' },
-      el('button', { type: 'button', class: 'btn', onclick: exportCalendar }, items[4]),
-      el('p', { class: 'muted small' }, text('S57'))),
-    // About your data (item 5): S54, the Validation data page, and the version.
-    el('div', { class: 'row' },
-      el('h3', {}, items[5]),
-      el('p', {}, text('S54')),
-      el('button', { type: 'button', class: 'btn', onclick: () => app.validation() }, items[6]),
-      el('p', { class: 'muted small num' }, text('S64', { version: APP_VERSION }))));
-}
-
-/** Make the .ics file and hand it to the browser as a download (spec 7.12). */
-function exportCalendar() {
-  const blob = new Blob([buildIcs(state)], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = el('a', { href: url, download: 'talent-rpg.ics', hidden: true });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
 }

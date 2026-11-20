@@ -11,7 +11,7 @@ import {
   openSheet, closeSheet, segmented, timePicker, field, textInput,
 } from './widgets.js';
 import {
-  lengthOptions, placeOptions, weekdayOptions, newSlotsForm,
+  lengthOptions, weekdayOptions, newSlotsForm, help,
 } from './addTalent.js';
 import { applyUpdates } from '../store.js';
 import { roleChange, roleAllowed, maintainLimit } from '../model/roles.js';
@@ -38,15 +38,13 @@ export function rescheduleSheet(inst, onMoved) {
     el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03'))));
 }
 
-/** Edit a slot permanently: day, anchor, time, length, place; or delete it. */
+/** Edit a slot permanently: day, anchor, time, length; or delete it. */
 export function slotEditSheet(slot, onSaved, { allowDelete = true } = {}) {
   const L62 = raw('L62');
   const day = segmented(weekdayOptions(), slot.weekday);
   const anchor = textInput(slot.anchor || '', { maxlength: 40 });
   const time = timePicker(slot.time);
   const length = segmented(lengthOptions(), slot.length);
-  const placeText = textInput(slot.placeText || '', { maxlength: 40, hidden: slot.place !== 'custom' });
-  const place = segmented(placeOptions(), slot.place, (v) => { placeText.hidden = v !== 'custom'; });
 
   const save = el('button', {
     type: 'button',
@@ -58,8 +56,6 @@ export function slotEditSheet(slot, onSaved, { allowDelete = true } = {}) {
         anchor: anchor.value.trim(),
         time: time.value,
         length: length.value,
-        place: place.value,
-        placeText: place.value === 'custom' ? placeText.value.trim() : '',
       });
       closeSheet();
       onSaved();
@@ -74,10 +70,9 @@ export function slotEditSheet(slot, onSaved, { allowDelete = true } = {}) {
 
   openSheet(el('div', { class: 'stack' },
     field(L62[0], day.node),
-    field(L62[1], anchor),
+    field(L62[1], anchor, help('S103')),
     field(L62[2], time.node),
-    field(L62[3], length.node),
-    field(L62[4], place.node, placeText),
+    field(L62[3], length.node, help('S104')),
     save,
     del,
     el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03'))));

@@ -9,7 +9,6 @@ import {
   state, talentById, attrsOf, slotsOf, saveAttribute, addMetric, mediaById,
 } from '../store.js';
 import { formatValue } from '../model/trials.js';
-import { placeLabel } from '../model/ics.js';
 import { mediaView } from './media.js';
 import {
   formatN, formatSpeed, knobProgress, positiveInt, positiveNum,
@@ -34,7 +33,7 @@ export function renderTalent(root, talentId) {
     return;
   }
   const L63 = raw('L63');
-  const rerender = () => renderTalent(root, talentId);
+  const rerender = () => app.refresh();
 
   const attrBlocks = attrsOf(talentId).map((a) => {
     const values = [
@@ -61,7 +60,7 @@ export function renderTalent(root, talentId) {
       onclick: () => slotEditSheet(s, rerender),
     },
     el('span', { class: 'num' }, `${weekdayLabel(s.weekday)} ${s.time}`),
-    el('span', { class: 'muted small' }, [s.anchor, text('L43', { min: s.length }), placeLabel(s)].filter(Boolean).join(' · '))));
+    el('span', { class: 'muted small' }, [s.anchor, text('L43', { min: s.length })].filter(Boolean).join(' · '))));
 
   // Role switch; Awaken (L19) for a dormant talent.
   const roleNode = talent.role === 'dormant'
@@ -75,7 +74,7 @@ export function renderTalent(root, talentId) {
     : el('div', { class: 'seg' }, roleButtons(talent, rerender));
 
   mount(root, el('section', { class: 'page fade-in' },
-    el('div', { class: 'page-top' }, backButton(() => app.home())),
+    el('div', { class: 'page-top' }, backButton(() => app.back())),
     el('h1', { class: 'page-title' }, talent.name),
     el('p', { class: 'muted small' }, `${roleLabel(talent.role)} · ${rankText(talent)}`),
     roleNode,
@@ -84,7 +83,8 @@ export function renderTalent(root, talentId) {
       el('h2', { class: 'section-title' }, L63[2]),
       ...slotRows,
       el('button', { type: 'button', class: 'btn-text', onclick: () => newSlotsSheet(talent, rerender) }, raw('L75'))),
-    trialHistory(talent)));
+    trialHistory(talent),
+    renderArchive(talent)));
 }
 
 /** Trial history: values as a line, then each record with its recordings (spec 5.8). */
@@ -103,15 +103,62 @@ function trialHistory(talent) {
   const chart = svg(`<polyline points="${points}"/>${dots}`, `0 0 ${w} ${h}`);
   chart.classList.add('trial-chart');
 
-  const rows = records.slice().reverse().map((r) => el('div', { class: 'attr-block' },
-    el('span', { class: 'num' }, `${monthDay.format(fromDateKey(r.date))} · ${formatValue(talent, r.value)}`),
-    mediaView(mediaById(r.recordingId)),
-    mediaView(mediaById(r.fullRecordingId))));
-
   return el('div', { class: 'section' },
     el('h2', { class: 'section-title' }, raw('L63')[3]),
-    chart,
-    ...rows);
+    chart);
+}
+
+// ---- Progress archive (spec 5.8): trial recordings by time, then 30-sec records; pick two ----
+
+let archivePicks = [];
+
+function renderArchive(talent) {
+  const L64 = raw('L64');
+  const pickable = (record, label) => {
+    const picked = archivePicks.includes(record.id);
+    const pick = el('button', {
+      type: 'button',
+      class: `seg-btn small${picked ? ' on' : ''}`,
+      'aria-pressed': picked ? 'true' : 'false',
+      onclick: () => {
+        archivePicks = picked ? archivePicks.filter((x) => x !== record.id) : [...archivePicks.slice(-1), record.id];
+        app.refresh();
+      },
+    }, label);
+    return el('div', { class: 'archive-item' }, pick, mediaView(record));
+  };
+
+  const trialItems = [];
+  const trials = state.trials
+    .filter((x) => x.talentId === talent.id)
+    .sort((a, b) => (a.at || 0) - (b.at || 0) || a.date.localeCompare(b.date));
+  for (const tr of trials) {
+    const date = monthDay.format(fromDateKey(tr.date));
+    const measured = mediaById(tr.recordingId);
+    if (measured) trialItems.push(pickable(measured, [date, formatValue(talent, tr.value)].filter(Boolean).join(' · ')));
+    const full = mediaById(tr.fullRecordingId);
+    if (full) trialItems.push(pickable(full, `${date} · ${tr.piece || talent.trialWork}`));
+  }
+  const evidence = state.media
+    .filter((m) => m.talentId === talent.id && m.type === 'evidence30s')
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((m) => pickable(m, monthDay.format(fromDateKey(m.date))));
+  if (!trialItems.length && !evidence.length) return null;
+
+  // Two picked records side by side.
+  const mine = new Set(state.media.filter((m) => m.talentId === talent.id).map((m) => m.id));
+  archivePicks = archivePicks.filter((id) => mine.has(id));
+  const picked = archivePicks.map(mediaById).filter(Boolean);
+  const compare = picked.length === 2
+    ? el('div', { class: 'compare frame' }, picked.map((m) => mediaView(m, { label: monthDay.format(fromDateKey(m.date)) })))
+    : el('p', { class: 'muted small' }, L64[2]);
+
+  return el('div', { class: 'section' },
+    compare,
+    trialItems.length ? el('h2', { class: 'section-title' }, L64[0]) : null,
+    ...trialItems,
+    evidence.length ? el('h2', { class: 'section-title' }, L64[1]) : null,
+    ...evidence);
 }
 
 /** Long press on an attribute: edit name, material, N, speed and targets (spec 6.6). */
@@ -123,7 +170,7 @@ function attributeSheet(a, onSaved) {
   const target = raw('L63')[1];
   const nodes = [
     field(raw('L61')[0], name),
-    field(raw('L61')[2], material),
+    field(raw('L85'), material),
     field(raw('L51')[2], el('div', { class: 'inline' }, nCur, a.nUnit === 'sec' ? el('span', { class: 'muted' }, raw('L71')) : null)),
     field(target, nTarget),
   ];

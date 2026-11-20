@@ -1,18 +1,20 @@
-// Appearance (spec 5.2 item 6, 7.6): Mana Stones, themes, badges, title frames, legendary titles.
+// Appearance (spec 5.13, 7.6): themes, badges, title frames, legendary titles.
+// Every item is shown as it really looks; tap one for a bigger preview with Buy / Use.
 // Items only change looks; they never affect levels.
 
-import { el, svg } from '../dom.js';
-import { raw } from '../text.js';
+import { el, mount, svg } from '../dom.js';
+import { text, raw, tagOf } from '../text.js';
 import { ITEMS } from '../strings.js';
 import { CONFIG } from '../config.js';
 import { state, savePlayer } from '../store.js';
 import { FRAME_CODES } from '../model/vault.js';
+import { levelFromExp } from '../model/session.js';
+import { THEME_CODES } from '../themes.js';
+import {
+  bar, backButton, openSheet, closeSheet,
+} from './widgets.js';
 import { app } from './app.js';
 
-export const THEME_CODES = [
-  'pureBlack', 'terminal', 'amberScreen', 'notebook', 'washi', 'newspaper',
-  'blueprint', 'nightSky', 'forest', 'neon', 'daylight', 'highContrast',
-];
 export const BADGE_CODES = ['circle', 'square', 'triangle', 'diamond', 'hexagon', 'doubleCircle', 'cross', 'star'];
 
 const BADGE_SHAPES = {
@@ -26,9 +28,9 @@ const BADGE_SHAPES = {
   star: '<path d="M12 3.5l2.6 5.6 6 .7-4.5 4.1 1.2 6-5.3-3-5.3 3 1.2-6-4.5-4.1 6-.7z"/>',
 };
 
-/** Apply the equipped theme right away (only colors, fonts and lines change). */
+/** Apply the equipped theme right away. */
 export function applyTheme(code) {
-  document.documentElement.dataset.theme = code || 'pureBlack';
+  document.documentElement.dataset.theme = THEME_CODES.includes(code) ? code : 'pureBlack';
 }
 
 export function badgeIcon(code) {
@@ -37,12 +39,15 @@ export function badgeIcon(code) {
   return node;
 }
 
+function frameNode(frame, label) {
+  return el('span', { class: `title-frame frame-${frame || 'none'}` }, label);
+}
+
 /** The equipped legendary title in its frame (shown after S50 in the top row). */
 export function titleNode(player) {
   const title = player.equipped && player.equipped.title;
   if (!title) return null;
-  const frame = (player.equipped && player.equipped.titleFrame) || 'none';
-  return el('span', { class: `title-frame frame-${frame}` }, title);
+  return frameNode(player.equipped.titleFrame, title);
 }
 
 function owned(kind) {
@@ -51,56 +56,117 @@ function owned(kind) {
 
 async function buy(kind, code, price) {
   const p = state.player;
-  if (p.magicStones < price) return;
+  if ((p.magicStones || 0) < price) return;
   await savePlayer({ ...p, magicStones: p.magicStones - price, owned: { ...p.owned, [kind]: [...owned(kind), code] } });
-  app.home();
+  closeSheet();
+  app.refresh();
 }
 
 async function use(slot, code) {
   const p = state.player;
   await savePlayer({ ...p, equipped: { ...p.equipped, [slot]: code } });
   if (slot === 'theme') applyTheme(code);
-  app.home();
+  closeSheet();
+  app.refresh();
 }
 
-/** One row: name + In use / Use / Buy · price. */
-function itemRow(label, { kind, slot, code, price, preview }) {
-  const isOwned = owned(kind).includes(code);
-  const inUse = state.player.equipped && state.player.equipped[slot] === code;
-  let button;
-  if (inUse) button = el('button', { type: 'button', class: 'seg-btn on', disabled: true }, raw('L33'));
-  else if (isOwned) button = el('button', { type: 'button', class: 'seg-btn', onclick: () => use(slot, code) }, raw('L32'));
+// ---- Previews ----
+
+/** A small task card drawn in a theme: background and texture, frame, a tag, a bar, Start. */
+function themePreview(code, big = false) {
+  return el('span', { class: `theme-preview${big ? ' big' : ''}`, 'data-theme': code },
+    el('span', { class: 'preview-card frame' },
+      el('span', { class: 'preview-tag' }, el('span', { class: 'sys-tag' }, tagOf('S01'))),
+      bar(0.6, code),
+      el('span', { class: 'btn btn-invert preview-start' }, raw('L01'))));
+}
+
+function badgePreview(code, big = false) {
+  return el('span', { class: `badge-preview${big ? ' big' : ''}` }, badgeIcon(code));
+}
+
+/** Your current title (or Lv) in a frame, at the size of the top row. */
+function framePreview(code) {
+  const p = state.player;
+  const label = (p.equipped && p.equipped.title) || text('S50', { lv: levelFromExp(p.totalExp) });
+  return el('span', { class: 'frame-preview top-row' }, frameNode(code, label));
+}
+
+function titlePreview(title) {
+  const frame = state.player.equipped && state.player.equipped.titleFrame;
+  return el('span', { class: 'frame-preview top-row' }, frameNode(frame, title));
+}
+
+// ---- Items ----
+
+/**
+ * item = { kind, slot, code, name, price, preview(big) }
+ * Status line under a tile: name and price, or In use.
+ */
+function status(item) {
+  const inUse = state.player.equipped && state.player.equipped[item.slot] === item.code;
+  const isOwned = owned(item.kind).includes(item.code);
+  if (inUse) return `${item.name} · ${raw('L33')}`;
+  if (isOwned || !item.price) return item.name;
+  return `${item.name} · ${item.price}`;
+}
+
+function detailSheet(item) {
+  const inUse = state.player.equipped && state.player.equipped[item.slot] === item.code;
+  const isOwned = owned(item.kind).includes(item.code) || !item.price;
+  let action;
+  if (inUse) action = el('button', { type: 'button', class: 'btn on', disabled: true }, raw('L33'));
+  else if (isOwned) action = el('button', { type: 'button', class: 'btn btn-primary', onclick: () => use(item.slot, item.code) }, raw('L32'));
   else {
-    button = el('button', {
+    action = el('button', {
       type: 'button',
-      class: 'seg-btn',
-      disabled: state.player.magicStones < price || undefined,
-      onclick: () => buy(kind, code, price),
-    }, `${raw('L31')} · ${price}`);
+      class: 'btn btn-primary',
+      disabled: (state.player.magicStones || 0) < item.price || undefined,
+      onclick: () => buy(item.kind, item.code, item.price),
+    }, `${raw('L31')} · ${item.price}`);
   }
-  return el('div', { class: 'item-row' }, el('span', { class: 'item-name' }, preview || null, label), button);
+  openSheet(el('div', { class: 'stack' },
+    el('div', { class: 'preview-big' }, item.preview(true)),
+    el('p', { class: 'small muted' }, status(item)),
+    action));
 }
 
-export function renderAppearanceSection() {
+function tile(item) {
+  return el('button', { type: 'button', class: 'preview-tile', onclick: () => detailSheet(item) },
+    item.preview(false),
+    el('span', { class: 'tile-name small muted' }, status(item)));
+}
+
+function group(title, items, columns) {
+  return el('section', { class: 'section' },
+    el('h2', { class: 'section-title' }, title),
+    el('div', { class: `preview-grid cols-${columns}` }, items.map(tile)));
+}
+
+export function renderAppearance(root) {
   const L68 = raw('L68');
   const prices = CONFIG.prices;
-  const p = state.player;
   const titles = owned('legendaryTitles');
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, raw('L60')[5]),
-    el('div', { class: 'item-row' }, el('span', {}, L68[0]), el('span', { class: 'num' }, String(p.magicStones || 0))),
-    el('h3', { class: 'item-head muted small' }, L68[1]),
-    ...THEME_CODES.map((code, i) => itemRow(ITEMS.themes[i], {
-      kind: 'themes', slot: 'theme', code, price: prices.theme, preview: el('span', { class: `swatch swatch-${code}` }),
-    })),
-    el('h3', { class: 'item-head muted small' }, L68[2]),
-    ...BADGE_CODES.map((code, i) => itemRow(ITEMS.badges[i], {
-      kind: 'badges', slot: 'badge', code, price: prices.badge, preview: badgeIcon(code),
-    })),
-    el('h3', { class: 'item-head muted small' }, L68[3]),
-    ...FRAME_CODES.map((code, i) => itemRow(ITEMS.titleFrames[i], {
-      kind: 'titleFrames', slot: 'titleFrame', code, price: prices.titleFrame,
-    })),
-    titles.length ? el('h3', { class: 'item-head muted small' }, L68[4]) : null,
-    ...titles.map((title) => itemRow(title, { kind: 'legendaryTitles', slot: 'title', code: title, price: 0 })));
+
+  const themes = THEME_CODES.map((code, i) => ({
+    kind: 'themes', slot: 'theme', code, name: ITEMS.themes[i], price: prices.theme, preview: (big) => themePreview(code, big),
+  }));
+  const badges = BADGE_CODES.map((code, i) => ({
+    kind: 'badges', slot: 'badge', code, name: ITEMS.badges[i], price: prices.badge, preview: (big) => badgePreview(code, big),
+  }));
+  const frames = FRAME_CODES.map((code, i) => ({
+    kind: 'titleFrames', slot: 'titleFrame', code, name: ITEMS.titleFrames[i], price: prices.titleFrame, preview: () => framePreview(code),
+  }));
+  const legendary = titles.map((title) => ({
+    kind: 'legendaryTitles', slot: 'title', code: title, name: title, price: 0, preview: () => titlePreview(title),
+  }));
+
+  mount(root, el('section', { class: 'page fade-in' },
+    el('div', { class: 'page-top' }, backButton(() => app.back())),
+    el('h1', { class: 'page-title' }, raw('L60')[4]),
+    el('div', { class: 'item-row' }, el('span', {}, L68[0]), el('span', { class: 'num' }, String(state.player.magicStones || 0))),
+    group(L68[1], themes, 2),
+    group(L68[2], badges, 4),
+    group(L68[3], frames, 2),
+    legendary.length ? group(L68[4], legendary, 2) : null));
 }

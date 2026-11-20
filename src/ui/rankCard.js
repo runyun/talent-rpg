@@ -2,7 +2,7 @@
 // Drawn on a canvas in the colors of the (inverted) rank-up screen; saved or shared as a PNG.
 
 import { el } from '../dom.js';
-import { text, raw } from '../text.js';
+import { text, raw, plain } from '../text.js';
 import { METRICS } from '../model/trials.js';
 
 const W = 1080;
@@ -117,7 +117,7 @@ const toBlob = (canvas) => new Promise((resolve) => canvas.toBlob(resolve, 'imag
 /** Share sheet with the PNG (on iPhone it has "Save Image"); falls back to a download. */
 async function sharePng(blob, shareText) {
   const file = new File([blob], 'rank-up.png', { type: 'image/png' });
-  const data = shareText ? { files: [file], text: shareText } : { files: [file] };
+  const data = shareText ? { files: [file], text: plain(shareText) } : { files: [file] };
   if (navigator.canShare && navigator.canShare(data)) {
     try {
       await navigator.share(data);
