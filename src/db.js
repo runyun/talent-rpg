@@ -95,12 +95,30 @@ function migrate_v1_v2(db, tx) {
   }));
 }
 
+// 2 -> 3 (stage 4): companions.
+function migrate_v2_v3(db, tx) {
+  updateAll(tx, 'attributes', (a) => ({
+    ...a,
+    breakthroughShown: a.breakthroughShown || false, // C4 congratulation given for the last plateau
+  }));
+  updateAll(tx, 'player', (p) => ({
+    ...p,
+    companionsGreeted: p.companionsGreeted || false, // C5 first meeting shown
+  }));
+  updateAll(tx, 'settings', (s) => ({
+    ...s,
+    companionsOn: s.companionsOn !== false,
+  }));
+}
+
 /** MIGRATIONS[i]: (db, tx) => void, upgrades version i to i + 1. */
 export const MIGRATIONS = [
   // 0 -> 1: first schema
   (db) => createStores_v1(db),
   // 1 -> 2: trial / plateau / return fields
   migrate_v1_v2,
+  // 2 -> 3: companion fields
+  migrate_v2_v3,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
@@ -239,6 +257,7 @@ export function defaultPlayer(now) {
     returnHandledFor: null,
     returnActive: false,
     plateauCheckedWeek: null,
+    companionsGreeted: false,
   };
 }
 

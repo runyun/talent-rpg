@@ -4,11 +4,14 @@ import { openDb, requestPersistence, touchOpen, put } from './db.js';
 import { el, mount } from './dom.js';
 import { text, raw } from './text.js';
 import {
-  state, loadState, loadActive, savePlayer, applyUpdates,
+  state, loadState, loadActive, savePlayer, applyUpdates, saveWorld,
 } from './store.js';
 import { plateauUpdates, returnUpdates } from './model/plateau.js';
 import { renderTrial, leaveTrial } from './ui/trial.js';
 import { stopPlaying, isPlaying } from './ui/media.js';
+import { renderCompanion, renderGreeting, needsGreeting } from './ui/companions.js';
+import { initialWorld, catchUp } from './model/companionSim.js';
+import { dateKey } from './time.js';
 import { app } from './ui/app.js';
 import { isStandalone, renderInstall } from './ui/install.js';
 import { renderWelcome } from './ui/welcome.js';
@@ -62,16 +65,35 @@ function show(name) {
   screen = name;
 }
 
-/** Daily rule checks: return card (7 days away) and Plateau Dungeon start / end. */
+/** Daily rule checks: return card (7 days away), Plateau Dungeon start / end, companion days. */
 async function dailyChecks() {
   const now = new Date();
   const back = returnUpdates(state, now);
   if (back) await applyUpdates(back);
   const plateau = plateauUpdates(state, now);
   await applyUpdates(plateau);
+  await companionCatchUp(now);
+}
+
+/** Simulate the companions from the last simulated day up to today (spec 7.9). */
+async function companionCatchUp(now) {
+  const today = dateKey(now);
+  const world = state.world
+    ? structuredClone(state.world)
+    : initialWorld(dateKey(new Date(state.player.firstOpenedAt)));
+  if (world.global.simulatedThrough >= today) return;
+  const items = catchUp(world, today);
+  await saveWorld(world, items);
 }
 
 app.home = () => {
+  if (needsGreeting()) {
+    // First meeting with 3 companions (spec 5.7 step 4), once.
+    show('greeting');
+    window.scrollTo(0, 0);
+    renderGreeting(root);
+    return;
+  }
   const keepScroll = screen === 'home';
   show('home');
   const y = window.scrollY;
@@ -101,6 +123,12 @@ app.addTalent = ({ onboarding = false } = {}) => {
           el('button', { type: 'button', class: 'btn', onclick: () => app.home() }, raw('L11')))));
     },
   }));
+};
+
+app.companion = (id) => {
+  show('companion');
+  window.scrollTo(0, 0);
+  renderCompanion(root, id);
 };
 
 app.trial = ({ talentId, kind, role }) => {

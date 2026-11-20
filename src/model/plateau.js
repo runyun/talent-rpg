@@ -12,6 +12,7 @@ function startPlateau(attr, now) {
     plateau: { method: 5 + (count % 3), start: dateKey(now), end: dateKey(addDays(now, CONFIG.plateau.methodDays)) },
     plateauCount: count + 1,
     plateauEndShown: false,
+    breakthroughShown: false,
   };
 }
 

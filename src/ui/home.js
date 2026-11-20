@@ -10,9 +10,11 @@ import {
 } from '../time.js';
 import {
   state, attrsOf, newId, saveActive, savePlayer, saveWeek, weekRecord, updateOpenMetric, saveAttribute, mediaById,
+  saveSettings, addMetric,
 } from '../store.js';
 import { eligibility, nextDue, formatValue } from '../model/trials.js';
 import { mediaView } from './media.js';
+import { renderFeedSection, companionsOn } from './companions.js';
 import { decideCard, orderAttributes } from '../model/card.js';
 import { instancesForWeek, isOnTime, instanceStatus } from '../model/schedule.js';
 import {
@@ -75,7 +77,7 @@ export function renderHome(root) {
     cardUi = { id, size: null, shift: 0, message };
   }
 
-  const nodes = [renderFocus(card, now), renderTalents(), renderWeek(now), renderArchive(), renderSettings()].filter(Boolean);
+  const nodes = [renderFocus(card, now), renderTalents(), renderWeek(now), renderArchive(), renderFeedSection(), renderSettings()].filter(Boolean);
   mount(root, ...nodes);
   cardUi.message = null;
 }
@@ -443,8 +445,26 @@ function renderWeek(now) {
 function renderSettings() {
   const titles = raw('L60');
   const items = raw('L69');
+  const on = companionsOn();
+  const onOff = raw('L39');
+  // Companions on/off (spec 5.10 item 1). Each switch is recorded for the validation data (spec 10).
+  const companionsToggle = el('div', { class: 'row setting-row' },
+    el('h3', {}, items[0]),
+    el('div', { class: 'seg' }, [true, false].map((v, i) => el('button', {
+      type: 'button',
+      class: `seg-btn${on === v ? ' on' : ''}`,
+      'aria-pressed': on === v ? 'true' : 'false',
+      onclick: async () => {
+        if (on === v) return;
+        await saveSettings({ ...state.settings, companionsOn: v });
+        addMetric({ type: 'toggle', what: 'companions', on: v, at: Date.now() });
+        app.home();
+      },
+    }, onOff[i]))));
+
   return el('section', { class: 'section' },
     el('h2', { class: 'section-title' }, titles[6]),
+    companionsToggle,
     el('div', { class: 'row' },
       el('h3', {}, items[5]),
       el('p', {}, text('S54')),

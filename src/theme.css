@@ -10,6 +10,7 @@
   --line: #ffffff;
   --accent-bg: #ffffff;       /* inverted: Start button and rank-up screen only */
   --accent-fg: #000000;
+  --muted-inverse: #595959;   /* secondary text on the inverted (rank-up) screen */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
   --line-width: 1px;
@@ -128,6 +129,11 @@ html:has(.inverse) body {
 .inverse .btn {
   color: var(--accent-fg);
   border-color: var(--accent-fg);
+}
+
+/* Secondary text on the inverted screen: #595959 on white is 7:1 (WCAG AA). */
+.inverse .muted {
+  color: var(--muted-inverse);
 }
 
 .btn-text {
@@ -735,6 +741,78 @@ textarea {
 
 .pre {
   white-space: pre-wrap;
+}
+
+/* ---- Companions ---- */
+
+.feed-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-top: var(--line-width) solid var(--line);
+}
+
+.feed-day > p {
+  margin: 0 0 4px;
+}
+
+.feed-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+
+.feed-item > span:last-child {
+  overflow-wrap: anywhere;
+}
+
+.profile-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-top: var(--line-width) solid var(--line);
+}
+
+.week-dots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.week-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+}
+
+.week-dot.on {
+  color: var(--fg);
+}
+
+.congrats {
+  padding-top: 8px;
+}
+
+.congrats-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-row h3 {
+  margin-bottom: 10px;
 }
 
 /* ---- Install guide ---- */

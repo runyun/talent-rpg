@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (stage-4)
+
+- Data schema v3 with a migration from v2: breakthrough flag on attributes, first-meeting flag on the player, Companions setting kept.
+- Companion world: 30 virtual companions simulated day by day from the first open. Each day uses random numbers seeded by the date and companion number, so catching up many days at once gives the same result as opening the app daily. Events (sick, trip, exams, moving, low motivation, busy work, sprint, new teacher, new gear, plateau), long weekends and typhoon days (July-September) change attendance; at most 10 companions in a down event at once; growth up to Rank B; returns and breakthroughs after events end.
+- Feed: today (up to now) and the 7 days before, at most 10 items a day: your milestones (weekly win, rank up), events, rank-ups, returns, then practices picked by seed. Tap an item to open the companion's profile.
+- Companion profile: title, talent, personality, rank, base attendance, preferred time, current event, last 7 days.
+- First meeting: 3 companions say hello once, with the note that they are virtual.
+- Congratulations from 1-3 companions who practiced today and are not in a down event: weekly win, trial rank up, first session after a return, Plateau Dungeon breakthrough.
+- Settings: Companions on/off (hides the feed and congratulations; switches are recorded for the validation data). Companions never appear in the focus area of Home.
+- Rank-up screen: secondary text uses a darker gray on white for WCAG AA contrast.
+
 ## 0.3.0 (stage-3)
 
 - Data schema v2 with a migration from v1: trial cycle, retry, failed-trial streak and new-piece baseline on talents; Plateau Dungeon fields on attributes; return-card fields on the player. A failed migration rolls back fully and closes its connection.

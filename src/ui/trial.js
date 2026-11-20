@@ -5,10 +5,11 @@
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
 import { CONFIG } from '../config.js';
-import { MINUTE, dateKey, fromDateKey } from '../time.js';
+import { MINUTE, dateKey, fromDateKey, hm } from '../time.js';
 import {
-  state, attrsOf, talentById, newId, saveTrial, applyUpdates, mediaById,
+  state, attrsOf, talentById, newId, saveTrial, applyUpdates, mediaById, addFeedItem,
 } from '../store.js';
+import { congratsBlock } from './companions.js';
 import {
   applyResult, formatValue, gap, meetsTarget, metricName, nextDue, passTarget, previousRecord, rankIndex, METRICS,
 } from '../model/trials.js';
@@ -275,6 +276,25 @@ async function finishTrial(ctx) {
     lines.map((l, i) => el('p', { class: i === 0 ? 'task' : '' }, l)));
   mount(ctx.root, box);
 
+  // Companions: C2 on rank up (plus your milestone in the feed); C4 when this pass breaks a plateau.
+  const seed = `trial|${t.id}|${now.getTime()}`;
+  if (passed && result.rankUp) {
+    const block = congratsBlock('C2', seed, { talent: t.name, rank: t.rank });
+    if (block) box.append(block);
+    await addFeedItem({ date: dateKey(now), time: hm(now), type: 'you', companionId: null, key: 'S25', vars: {
+      talent: t.name, rank: t.rank, metric: metricName(t.trialMetric), old: formatValue(t, ctx.prev.value), new: formatValue(t, ctx.value),
+    } });
+  }
+  if (passed) {
+    const windowMs = CONFIG.plateau.breakthroughWeeks * 7 * 24 * 60 * 60 * 1000;
+    const broken = attrsOf(t.id).filter((a) => a && a.plateauEndedAt && !a.breakthroughShown && now.getTime() - a.plateauEndedAt <= windowMs);
+    if (broken.length) {
+      await applyUpdates({ attrs: broken.map((a) => ({ ...a, breakthroughShown: true })) });
+      const block = congratsBlock('C4', seed, { talent: t.name });
+      if (block) box.append(block);
+    }
+  }
+
   if (passed && result.rankUp && t.rank === 'C') {
     box.append(el('p', {}, text('S29', { talent: t.name })), classChangeForm(t, () => afterClassChange(ctx, box, t)));
     return;
@@ -284,7 +304,7 @@ async function finishTrial(ctx) {
 
 /** S30 for the Main talent, then OK. */
 function afterClassChange(ctx, box, t) {
-  const ok = el('button', { type: 'button', class: 'btn btn-primary btn-start', onclick: () => app.home() }, raw('L14'));
+  const ok = el('button', { type: 'button', class: 'btn btn-primary', onclick: () => app.home() }, raw('L14'));
   if (t.role !== 'main') {
     box.append(el('div', { class: 'focus-bottom' }, ok));
     return;

@@ -14,6 +14,8 @@ export const state = {
   weeks: new Map(), // weekStart -> week record
   trials: [], // trial records (baseline / trial / retry / awakenRetest)
   media: [], // recordings, photos and text (blobs are loaded lazily by the browser)
+  world: null, // companions: { global, companions: [30 states] }
+  feed: [], // feed items of the last 8 days
   openMetricId: null,
   startPressedThisOpen: false,
 };
@@ -33,6 +35,7 @@ export async function loadState(db) {
   ]);
   state.trials = trials.sort((a, b) => a.at - b.at);
   state.media = media.sort((a, b) => a.createdAt - b.createdAt);
+  await loadWorld();
   state.player = player;
   state.settings = settings;
   state.talents = talents.sort((a, b) => a.createdAt - b.createdAt);
@@ -215,6 +218,50 @@ export async function commitSession({ session, attr, player, week }) {
   if (attr) state.attrs.get(attr.talentId)[attr.index] = attr;
   state.player = player;
   if (week) state.weeks.set(week.weekStart, week);
+}
+
+// ---- Companions ----
+
+const FEED_DAYS = 8; // today + 7 days back (spec 7.11)
+
+export async function loadWorld() {
+  const records = await getAll(state.db, 'companionState');
+  const global = records.find((r) => r.id === 'global');
+  state.world = global
+    ? { global, companions: records.filter((r) => r.id !== 'global').sort((a, b) => a.id - b.id) }
+    : null;
+  await loadFeed();
+}
+
+export async function loadFeed() {
+  const from = new Date();
+  from.setDate(from.getDate() - FEED_DAYS);
+  const key = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
+  state.feed = await getAll(state.db, 'feed', 'date', IDBKeyRange.lowerBound(key));
+}
+
+/** Save the simulated world and the new feed items in one transaction. */
+export async function saveWorld(world, items) {
+  await transact(state.db, ['companionState', 'feed'], (tx) => {
+    const cs = tx.objectStore('companionState');
+    cs.put(world.global);
+    for (const c of world.companions) cs.put(c);
+    const feed = tx.objectStore('feed');
+    for (const it of items) feed.add(it);
+  });
+  state.world = world;
+  await loadFeed();
+}
+
+/** Your milestone in the feed (weekly win, rank up). */
+export async function addFeedItem(item) {
+  await transact(state.db, ['feed'], (tx) => tx.objectStore('feed').add(item));
+  state.feed.push(item);
+}
+
+export async function saveSettings(settings) {
+  await put(state.db, 'settings', settings);
+  state.settings = settings;
 }
 
 // ---- Running session (survives the app being closed) ----

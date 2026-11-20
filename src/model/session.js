@@ -1,7 +1,9 @@
 // Starting and finishing a practice session (spec 5.3, 5.4, 6.5-6.7, 6.11, 6.12).
 
 import { CONFIG } from '../config.js';
-import { MINUTE, dateKey, weekKey } from '../time.js';
+import { MINUTE, dateKey, weekKey, hm } from '../time.js';
+
+const hmOf = (ms) => hm(new Date(ms));
 import { applyFeedback, formatKnob, knobKind } from './knobs.js';
 import { easierCopy, expFor, sizeMinutes, taskSentence } from './tasks.js';
 import { orderAttributes } from './card.js';
@@ -159,11 +161,27 @@ export function finishSession({ active, feedback, state, attr, now }) {
   }
   if (reachedTarget) results.push({ key: 'S16', vars: { material: nextAttr.material }, materialPrompt: true });
   if (lvAfter > lvBefore) results.push({ key: 'S17', vars: { old: lvBefore, new: lvAfter } });
-  if (winNow) {
-    results.push({ key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } });
-    // Offer a 30-sec record on a weekly win, unless one was already saved in this session (Deep cool-down).
-    if (!active.evidenceId) results.push({ key: 'S19', evidencePrompt: true });
+  if (winNow) results.push({ key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } });
+
+  // Companion congratulations (spec 7.10), after S18 and before S19.
+  const talentName = (state.talents.find((t) => t.id === active.talentId) || {}).name;
+  if (winNow) results.push({ congrats: 'C1', vars: { done: after.done, count: player.weeklyWins } });
+  if (p.returnActive) results.push({ congrats: 'C3', vars: { talent: talentName } });
+  // Plateau breakthrough: the knob went up within 4 weeks after the Plateau Dungeon ended.
+  const windowMs = CONFIG.plateau.breakthroughWeeks * 7 * 24 * 60 * 60 * 1000;
+  if (change && change.dir > 0 && nextAttr.plateauEndedAt && !nextAttr.breakthroughShown
+    && endedAt - nextAttr.plateauEndedAt <= windowMs) {
+    nextAttr.breakthroughShown = true;
+    results.push({ congrats: 'C4', vars: { talent: talentName } });
   }
 
-  return { session, attr: nextAttr, player, week, results, knob: knobKind(nextAttr) };
+  // Offer a 30-sec record on a weekly win, unless one was already saved in this session (Deep cool-down).
+  if (winNow && !active.evidenceId) results.push({ key: 'S19', evidencePrompt: true });
+
+  // Your milestone for the feed.
+  const feedItem = winNow
+    ? { date: dateKey(new Date(endedAt)), time: hmOf(endedAt), type: 'you', companionId: null, key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins } }
+    : null;
+
+  return { session, attr: nextAttr, player, week, results, feedItem, knob: knobKind(nextAttr) };
 }

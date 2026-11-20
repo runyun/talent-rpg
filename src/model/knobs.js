@@ -51,6 +51,7 @@ export function newAttribute(talentId, index, level, input) {
     plateauCount: 0,
     plateauEndedAt: null,
     plateauEndShown: false,
+    breakthroughShown: false,
     tooHardStreakBonus: false,
     materialHistory: [],
     targetPromptOff: false,

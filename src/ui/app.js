@@ -9,4 +9,5 @@ export const app = {
   timer: () => {},
   finish: () => {},
   trial: () => {},
+  companion: () => {},
 };

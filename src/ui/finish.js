@@ -3,12 +3,13 @@
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
 import {
-  state, attrsOf, talentById, commitSession, clearActive, saveAttribute, updateOpenMetric,
+  state, attrsOf, talentById, commitSession, clearActive, saveAttribute, updateOpenMetric, addFeedItem,
 } from '../store.js';
 import { finishSession } from '../model/session.js';
 import { replaceMaterial } from '../model/knobs.js';
 import { textInput } from './widgets.js';
 import { evidencePrompt } from './timer.js';
+import { congratsBlock } from './companions.js';
 import { app } from './app.js';
 
 const STAGGER_MS = 300; // each line fades in after the previous one
@@ -60,6 +61,7 @@ async function complete(root, active, attr, feedback) {
     out.player.seenExplanations = [...seen];
   }
   await commitSession(out);
+  if (out.feedItem) await addFeedItem(out.feedItem);
   updateOpenMetric({ practiced: true });
   showResults(root, out);
 }
@@ -75,6 +77,15 @@ function showResults(root, out) {
   };
 
   out.results.forEach((r, i) => {
+    if (r.congrats) {
+      const node = congratsBlock(r.congrats, out.session.id, r.vars);
+      if (node) {
+        node.classList.add('fade-in');
+        node.style.animationDelay = `${i * STAGGER_MS}ms`;
+        box.append(node);
+      }
+      return;
+    }
     if (r.evidencePrompt) {
       pending += 1;
       const node = evidencePrompt({ talentId: out.session.talentId, sessionId: out.session.id, onDone: promptDone });
