@@ -10,7 +10,9 @@ import { rescheduleOptions, rescheduleTarget, resolveCollision } from '../model/
 import {
   openSheet, closeSheet, segmented, timePicker, field, textInput,
 } from './widgets.js';
-import { lengthOptions, placeOptions, weekdayOptions } from './addTalent.js';
+import {
+  lengthOptions, placeOptions, weekdayOptions, newSlotsForm,
+} from './addTalent.js';
 import { applyUpdates } from '../store.js';
 import { roleChange, roleAllowed, maintainLimit } from '../model/roles.js';
 import { confirmMainSwitch } from './trial.js';
@@ -78,6 +80,25 @@ export function slotEditSheet(slot, onSaved, { allowDelete = true } = {}) {
     field(L62[4], place.node, placeText),
     save,
     del,
+    el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03'))));
+}
+
+/** Add slots to an existing talent with the same fields as Add talent (spec 5.8). */
+export function newSlotsSheet(talent, onSaved) {
+  const form = newSlotsForm();
+  const save = el('button', {
+    type: 'button',
+    class: 'btn btn-primary',
+    onclick: async () => {
+      const slots = form.build(talent.id, Date.now());
+      if (!slots.length) return;
+      save.disabled = true;
+      await applyUpdates({ slots });
+      closeSheet();
+      onSaved();
+    },
+  }, raw('L21'));
+  openSheet(el('div', { class: 'stack' }, form.node, save,
     el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03'))));
 }
 

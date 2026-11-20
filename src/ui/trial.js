@@ -22,6 +22,7 @@ import { fmtClock } from './timer.js';
 import {
   field, textInput, numberInput, segmented, openSheet, closeSheet,
 } from './widgets.js';
+import { rankCardBlock } from './rankCard.js';
 import { app } from './app.js';
 
 const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
@@ -287,6 +288,15 @@ async function finishTrial(ctx) {
   if (passed && result.rankUp) {
     const block = congratsBlock('C2', seed, { talent: t.name, rank: t.rank });
     if (block) box.append(block);
+    // Rank-up card image (spec 7.3), saved or shared with L29 / L30.
+    box.append(rankCardBlock({
+      talent: t.name,
+      oldRank: result.oldRank,
+      newRank: t.rank,
+      metric: t.trialMetric,
+      oldValue: formatValue(t, ctx.prev.value),
+      newValue: formatValue(t, ctx.value),
+    }, lines[0]));
     await addFeedItem({ date: dateKey(now), time: hm(now), type: 'you', companionId: null, key: 'S25', vars: {
       talent: t.name, rank: t.rank, metric: metricName(t.trialMetric), old: formatValue(t, ctx.prev.value), new: formatValue(t, ctx.value),
     } });

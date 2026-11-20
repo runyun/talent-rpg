@@ -87,10 +87,11 @@ export const S = {
   // Version 11 additions
   S64: 'Version {version}',
 
-  // Added in the app: S04 without an anchor (the time is exact, so no "around").
+  // Version 12 additions
+  // S04 without an anchor (the time is exact, so no "around").
   S65: 'Next training slot: {day} {time}',
 
-  // Added in the app: System Vault "Rules & verification" page (spec 5.11).
+  // System Vault "Rules & verification" page (spec 5.11).
   S66: 'Each ticket has 3 different numbers from 1 to 14. A draw opens every 3 days at 00:00 and picks 3 numbers. A ticket joins the next draw after it is made.',
   S67: 'Chance per ticket: jackpot (3 numbers match) 1/364, prize (2 numbers match) 33/364.',
   S68: 'Each ticket adds 1 Mana Stone to the pool. Jackpot winners share the whole pool, rounded down; the rest stays. With no jackpot, the pool carries over. Prizes do not come from the pool.',
@@ -212,10 +213,13 @@ export const L = {
   L67: ['Next draw', 'Pool', 'Your tickets', 'Recent draws', 'No prize', 'Prize', 'Jackpot'],
   L68: ['Mana Stones', 'Themes', 'Badges', 'Title frames', 'Titles'],
   L69: ['Companions', 'System Vault', 'Lucky numbers', 'Auto pick', 'Export to Calendar', 'About your data', 'Validation data'],
-  // Added in the app (not yet in the copy sheet):
+  // Version 12 additions
   L71: 'sec', // unit for Performance length
   L72: 'Back', // back button (accessibility label of the back arrow)
   L73: 'Mana Stone ×{n}', // vault prize and prices
+  L74: 'talent-rpg', // app name under the Home Screen icon; keep manifest.webmanifest and index.html in sync
+  // Added in the app (not yet in the copy sheet):
+  L75: '+ Add slot', // talent page: add training slots (spec 5.8)
 
   L70: [
     'Sessions vs planned',

@@ -45,11 +45,58 @@ export function weekdayOptions() {
   return [1, 2, 3, 4, 5, 6, 7].map((d) => ({ value: d, label: raw('L55')[d + 1] }));
 }
 
+/**
+ * The slot fields of spec 5.6 step 6: days (several), anchor, time, length, place.
+ * All picked days share the other fields. Also used to add slots on the talent page (spec 5.8).
+ * Returns { node, days(), build(talentId, now) }.
+ */
+export function newSlotsForm() {
+  const L62 = raw('L62');
+  const lastSlot = state.slots[state.slots.length - 1];
+  const warn = el('p', { class: 'muted small', hidden: true }, text('S52'));
+  const daysSeg = segmented(weekdayOptions(), [], updateWarn, { multi: true });
+  const anchorInput = textInput('', { maxlength: 40 });
+  const time = timePicker(lastSlot ? lastSlot.time : '20:00');
+  const lengthSeg = segmented(lengthOptions(), 15);
+  const placeText = textInput('', { maxlength: 40, hidden: true });
+  const placeSeg = segmented(placeOptions(), 'home', (v) => { placeText.hidden = v !== 'custom'; });
+
+  function updateWarn(days) {
+    const early = Date.now() - state.player.firstOpenedAt < CONFIG.slots.warnWeeks * 7 * DAY;
+    const existing = instancesForWeek(weekKey(new Date()), { ...state, sessions: [] }).length;
+    warn.hidden = !(early && existing + days.length > CONFIG.slots.weeklyWarnLimit);
+  }
+
+  const node = el('div', { class: 'stack' },
+    field(L62[0], daysSeg.node),
+    field(L62[1], anchorInput),
+    field(L62[2], time.node),
+    field(L62[3], lengthSeg.node),
+    field(L62[4], placeSeg.node, placeText),
+    warn);
+
+  return {
+    node,
+    days: () => daysSeg.value,
+    build: (talentId, now) => daysSeg.value.slice().sort().map((weekday) => ({
+      id: newId(),
+      talentId,
+      weekday,
+      anchor: anchorInput.value.trim(),
+      time: time.value,
+      length: lengthSeg.value,
+      place: placeSeg.value,
+      placeText: placeSeg.value === 'custom' ? placeText.value.trim() : '',
+      overrides: {},
+      createdAt: now,
+    })),
+  };
+}
+
 /** renderAddTalent({ onboarding, onDone(talent), onCancel }) */
 export function renderAddTalent({ onboarding, onDone, onCancel }) {
   const openedAt = Date.now();
   const L61 = raw('L61');
-  const L62 = raw('L62');
   const L49 = raw('L49');
 
   let level = 'beginner';
@@ -107,21 +154,7 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
   const roleSeg = segmented(roles, defaultRole);
   const roleNotes = el('p', { class: 'muted small' }, roles.filter((r) => r.disabled).map((r) => `${r.label}: ${r.note}`).join(' · '));
 
-  // Slots
-  const lastSlot = state.slots[state.slots.length - 1];
-  const warn = el('p', { class: 'muted small', hidden: true }, text('S52'));
-  const daysSeg = segmented(weekdayOptions(), [], updateWarn, { multi: true });
-  const anchorInput = textInput('', { maxlength: 40 });
-  const time = timePicker(lastSlot ? lastSlot.time : '20:00');
-  const lengthSeg = segmented(lengthOptions(), 15);
-  const placeText = textInput('', { maxlength: 40, hidden: true });
-  const placeSeg = segmented(placeOptions(), 'home', (v) => { placeText.hidden = v !== 'custom'; });
-
-  function updateWarn(days) {
-    const early = Date.now() - state.player.firstOpenedAt < CONFIG.slots.warnWeeks * 7 * DAY;
-    const existing = instancesForWeek(weekKey(new Date()), { ...state, sessions: [] }).length;
-    warn.hidden = !(early && existing + days.length > CONFIG.slots.weeklyWarnLimit);
-  }
+  const slotForm = newSlotsForm();
 
   const save = el('button', { type: 'button', class: 'btn btn-primary' }, raw('L21'));
   save.addEventListener('click', async () => {
@@ -162,18 +195,7 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
       speedUnit: r.speed ? r.speedUnit.value : null,
       speedUnitText: r.speed ? r.speedUnitText.value : '',
     }));
-    const slots = talent.role === 'dormant' ? [] : daysSeg.value.sort().map((weekday) => ({
-      id: newId(),
-      talentId: talent.id,
-      weekday,
-      anchor: anchorInput.value.trim(),
-      time: time.value,
-      length: lengthSeg.value,
-      place: placeSeg.value,
-      placeText: placeSeg.value === 'custom' ? placeText.value.trim() : '',
-      overrides: {},
-      createdAt: now,
-    }));
+    const slots = talent.role === 'dormant' ? [] : slotForm.build(talent.id, now);
     await storeAddTalent(talent, attributes, slots);
     addMetric({ type: 'addTalent', at: now, seconds: Math.round((now - openedAt) / 1000) });
     onDone(talent);
@@ -190,14 +212,7 @@ export function renderAddTalent({ onboarding, onDone, onCancel }) {
     field(L61[5], metricSeg.node),
     field(L61[6], metricUnit),
     field(L61[7], roleSeg.node, roleNotes),
-    el('div', { class: 'field' },
-      el('span', { class: 'field-label' }, L61[8]),
-      field(L62[0], daysSeg.node),
-      field(L62[1], anchorInput),
-      field(L62[2], time.node),
-      field(L62[3], lengthSeg.node),
-      field(L62[4], placeSeg.node, placeText),
-      warn),
+    el('div', { class: 'field' }, el('span', { class: 'field-label' }, L61[8]), slotForm.node),
     el('div', { class: 'form-bottom' }, save),
   );
 }

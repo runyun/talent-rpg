@@ -1,6 +1,6 @@
 // Talent page (spec 5.8, stage 2 part): attributes with material history and knobs
-// (long press to edit), and the slot list (tap to edit or delete).
-// Trial history, role switch and Awaken come in stage 3.
+// (long press to edit), the slot list (add, tap to edit or delete), trial history,
+// role switch and Awaken.
 
 import { el, mount, svg } from '../dom.js';
 import { text, raw } from '../text.js';
@@ -9,6 +9,7 @@ import {
   state, talentById, attrsOf, slotsOf, saveAttribute, addMetric, mediaById,
 } from '../store.js';
 import { formatValue } from '../model/trials.js';
+import { placeLabel } from '../model/ics.js';
 import { mediaView } from './media.js';
 import {
   formatN, formatSpeed, knobProgress, positiveInt, positiveNum,
@@ -16,7 +17,7 @@ import {
 import {
   onLongPress, backButton, bar, openSheet, closeSheet, field, textInput, numberInput, segmented,
 } from './widgets.js';
-import { slotEditSheet, roleButtons } from './sheets.js';
+import { slotEditSheet, newSlotsSheet, roleButtons } from './sheets.js';
 import { rankText } from './home.js';
 import { app } from './app.js';
 
@@ -24,11 +25,6 @@ const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeri
 
 function roleLabel(role) {
   return raw({ main: 'L45', maintain: 'L46', dormant: 'L47' }[role]);
-}
-
-function placeLabel(slot) {
-  if (slot.place === 'custom') return slot.placeText || raw('L53')[3];
-  return raw('L53')[['home', 'commute', 'work'].indexOf(slot.place)];
 }
 
 export function renderTalent(root, talentId) {
@@ -86,7 +82,8 @@ export function renderTalent(root, talentId) {
     el('div', { class: 'section' }, ...attrBlocks),
     el('div', { class: 'section' },
       el('h2', { class: 'section-title' }, L63[2]),
-      ...slotRows),
+      ...slotRows,
+      el('button', { type: 'button', class: 'btn-text', onclick: () => newSlotsSheet(talent, rerender) }, raw('L75'))),
     trialHistory(talent)));
 }
 

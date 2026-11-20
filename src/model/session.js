@@ -54,6 +54,8 @@ export function buildActive({ id, talent, attrs, attr, size, inst, onTime, now }
     size,
     slotInstance: inst ? inst.key : null,
     onTime: inst ? onTime : null,
+    // Started after the slot had ended (validation data, spec 10: off-slot share).
+    afterSlot: inst ? now.getTime() >= inst.end.getTime() : null,
     startedAt,
     endsAt: startedAt + sizeMinutes(size) * MINUTE,
     phases: phases.map((p) => ({
@@ -113,6 +115,7 @@ export function finishSession({ active, feedback, state, attr, now }) {
     startedAt: active.startedAt,
     endedAt,
     onTime: active.onTime,
+    afterSlot: active.afterSlot ?? null,
     knobSnapshot: active.knobSnapshot,
     feedback: active.size === 'mini' ? null : feedback,
     expGained: exp,

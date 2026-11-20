@@ -13,6 +13,7 @@ import { renderCompanion, renderGreeting, needsGreeting } from './ui/companions.
 import { initialWorld, catchUp } from './model/companionSim.js';
 import { vaultCatchUp } from './model/vault.js';
 import { renderVaultRules } from './ui/vault.js';
+import { renderValidation } from './ui/validation.js';
 import { applyTheme } from './ui/appearance.js';
 import { dateKey } from './time.js';
 import { app } from './ui/app.js';
@@ -192,6 +193,12 @@ app.addTalent = ({ onboarding = false } = {}) => {
           el('button', { type: 'button', class: 'btn', onclick: () => app.home() }, raw('L11')))));
     },
   }));
+};
+
+app.validation = () => {
+  show('validation');
+  window.scrollTo(0, 0);
+  renderValidation(root);
 };
 
 app.vaultRules = () => {

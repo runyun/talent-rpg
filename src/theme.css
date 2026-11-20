@@ -1080,3 +1080,29 @@ textarea {
 .install .focus-bottom {
   margin-top: 0;
 }
+
+/* ---- Validation data ---- */
+
+.data-table {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--line-width) var(--line-style) var(--line);
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: var(--line-width) var(--line-style) var(--muted);
+}
+
+/* ---- Rank-up card ---- */
+
+.rank-card-preview {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  border: 1px solid currentColor;
+}

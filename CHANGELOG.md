@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 (stage-6)
+
+- Export to Calendar (Settings): one weekly repeating event per slot of every Main or Maintain talent, titled "[Training] {talent}", with the place and length of the slot and no alarms. The file is a standard .ics download; export again after changing slots.
+- Validation data page (Settings -> About your data): sessions vs planned, on-time start rate, off-slot share, seconds to Start (median), time to add a talent, material edits, Too easy / Just right / Too hard, opens without practice and stress score per week; Companions / Vault on-off switches; trial results per talent. Everything stays on the phone.
+- Sessions now record whether they started after their slot had ended (for the off-slot share); older sessions are worked out from the slot.
+- Rank-up card: after a rank up, an image with the talent, old rank -> new rank and the main metric old -> new, in the colors of the rank-up screen. Save image and Share open the share sheet (on iPhone it has Save Image).
+- Talent page: "+ Add slot" adds training slots with the same fields as Add talent (days, anchor, time, length, place).
+- Copy: S65-S71 and L71-L74 are now in the copy sheet; new label L75 "+ Add slot".
+
 ## 0.5.0 (stage-5)
 
 - Critical hit: Standard/Deep answered "Just right" or "Too hard", 1 in 5, seeded by the session. Mana Stone ×5 before the vault opens; after that, half stones and half a vault ticket (stones when the vault is off).

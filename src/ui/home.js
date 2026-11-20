@@ -27,6 +27,7 @@ import { buildActive, levelFromExp } from '../model/session.js';
 import { unlockAudio } from '../metronome.js';
 import { onLongPress, onSwipe, bar } from './widgets.js';
 import { rescheduleSheet, slotEditSheet, talentMenu } from './sheets.js';
+import { buildIcs } from '../model/ics.js';
 import { app } from './app.js';
 
 // Card UI state survives re-renders while the same card is shown.
@@ -494,8 +495,25 @@ function renderSettings() {
     companionsToggle,
     vaultToggle,
     lucky,
+    // Export to Calendar (5.10 item 4, spec 7.12).
+    el('div', { class: 'row' },
+      el('button', { type: 'button', class: 'btn', onclick: exportCalendar }, items[4]),
+      el('p', { class: 'muted small' }, text('S57'))),
+    // About your data (item 5): S54, the Validation data page, and the version.
     el('div', { class: 'row' },
       el('h3', {}, items[5]),
       el('p', {}, text('S54')),
+      el('button', { type: 'button', class: 'btn', onclick: () => app.validation() }, items[6]),
       el('p', { class: 'muted small num' }, text('S64', { version: APP_VERSION }))));
+}
+
+/** Make the .ics file and hand it to the browser as a download (spec 7.12). */
+function exportCalendar() {
+  const blob = new Blob([buildIcs(state)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: 'talent-rpg.ics', hidden: true });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
 }

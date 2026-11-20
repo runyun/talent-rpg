@@ -164,6 +164,7 @@ export async function applyUpdates({ attrs = [], talents = [], slots = [], playe
   for (const s of slots) {
     const i = state.slots.findIndex((x) => x.id === s.id);
     if (i !== -1) state.slots[i] = s;
+    else state.slots.push(s);
   }
   if (player) state.player = player;
 }
