@@ -204,6 +204,10 @@ export const L = {
   L67: ['Next draw', 'Pool', 'Your tickets', 'Recent draws', 'No prize', 'Prize', 'Jackpot'],
   L68: ['Mana Stones', 'Themes', 'Badges', 'Title frames', 'Titles'],
   L69: ['Companions', 'System Vault', 'Lucky numbers', 'Auto pick', 'Export to Calendar', 'About your data', 'Validation data'],
+  // Added in the app (not yet in the copy sheet):
+  L71: 'sec', // unit for Performance length
+  L72: 'Back', // back button (accessibility label of the back arrow)
+
   L70: [
     'Sessions vs planned',
     'On-time start rate',

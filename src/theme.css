@@ -197,6 +197,413 @@ textarea {
   margin: 0 0 8px;
 }
 
+.card {
+  position: relative;
+}
+
+.card-auto {
+  min-height: 0;
+  margin-top: 0;
+}
+
+.card p {
+  margin: 0;
+}
+
+.task {
+  font-size: 1.35em;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.card-corner {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.btn-start {
+  min-height: 60px;
+  font-size: 1.15em;
+}
+
+.btn-big {
+  min-height: 64px;
+  font-size: 1.1em;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dot {
+  min-height: 44px;
+  padding: 8px 14px;
+  border: var(--line-width) solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.dot.on {
+  border-color: var(--line);
+  color: var(--fg);
+}
+
+.sunday {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: auto;
+}
+
+/* ---- Lists, bars ---- */
+
+.list-row,
+.talent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 0;
+  border: none;
+  border-top: var(--line-width) solid var(--line);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+
+.talent-row {
+  cursor: pointer;
+}
+
+.talent-row:last-of-type {
+  margin-bottom: 12px;
+}
+
+.talent-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.talent-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.bar {
+  display: block;
+  height: 4px;
+  border: var(--line-width) solid var(--muted);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--fg);
+}
+
+/* ---- This Week grid ---- */
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.week-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.week-head {
+  text-align: center;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: var(--line-width) solid transparent;
+}
+
+.week-col.today .week-head {
+  color: var(--fg);
+  border-bottom-color: var(--line);
+}
+
+.week-cell {
+  min-height: 40px;
+  padding: 4px 0;
+  border: var(--line-width) solid var(--muted);
+  background: none;
+  color: var(--fg);
+  font-size: 0.7em;
+  border-radius: var(--radius);
+}
+
+.week-cell.done {
+  border-color: var(--line);
+}
+
+/* ---- Forms and sheets ---- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 40px;
+}
+
+.form-top,
+.page-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.form-top .section-title {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+input[type="text"],
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: var(--line-width) solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: max(16px, 1em); /* 16px+ stops iOS from zooming in */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="text"]:focus,
+select:focus {
+  outline: none;
+  border-color: var(--line);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline input {
+  max-width: 8em;
+}
+
+.attr-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+  border-top: var(--line-width) solid var(--muted);
+}
+
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seg-btn {
+  flex: 1 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: var(--line-width) solid var(--muted);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9em;
+}
+
+.seg-btn.on {
+  border-color: var(--line);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.seg-btn:disabled {
+  opacity: 0.35;
+}
+
+.time-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-picker select {
+  width: 5em;
+  text-align: center;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.sheet-panel {
+  width: 100%;
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 20px 16px calc(env(safe-area-inset-bottom) + 16px);
+  background: var(--bg);
+  border-top: var(--line-width) solid var(--line);
+}
+
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  border: none;
+  background: none;
+  color: var(--fg);
+}
+
+.icon-btn svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---- Talent page ---- */
+
+.page-title {
+  font-size: 1.5em;
+  margin: 8px 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.attr-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 0;
+  border-top: var(--line-width) solid var(--line);
+}
+
+.attr-block p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+}
+
+/* ---- Timer and finish ---- */
+
+.timer,
+.finish {
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.timer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+}
+
+.timer-cancel {
+  padding-left: 0;
+}
+
+.timer-task {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.timer-clock {
+  font-size: 4.5em;
+  text-align: center;
+  margin: auto 0 0;
+}
+
+.metro {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.metro .seg-btn {
+  flex: 0 0 auto;
+}
+
+.finish {
+  justify-content: center;
+}
+
+.finish .focus-bottom {
+  margin-top: auto;
+}
+
+.results p {
+  margin: 0;
+}
+
 /* ---- Install guide ---- */
 
 .install {

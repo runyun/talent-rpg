@@ -7,7 +7,7 @@
 //   appears on the next open. No skipWaiting, no clients.claim, no reload, no prompt.
 // - Only old caches are deleted on activate. IndexedDB (user data) is never touched here.
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const CACHE = `talent-rpg-${VERSION}`;
 
 const FILES = [
@@ -22,9 +22,25 @@ const FILES = [
   './src/config.js',
   './src/db.js',
   './src/dom.js',
+  './src/store.js',
+  './src/time.js',
+  './src/metronome.js',
   './src/data/companions.js',
-  './src/ui/install.js',
+  './src/model/card.js',
+  './src/model/knobs.js',
+  './src/model/schedule.js',
+  './src/model/session.js',
+  './src/model/tasks.js',
+  './src/ui/app.js',
+  './src/ui/addTalent.js',
+  './src/ui/finish.js',
   './src/ui/home.js',
+  './src/ui/install.js',
+  './src/ui/sheets.js',
+  './src/ui/talent.js',
+  './src/ui/timer.js',
+  './src/ui/welcome.js',
+  './src/ui/widgets.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
