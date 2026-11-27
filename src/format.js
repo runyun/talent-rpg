@@ -35,3 +35,15 @@ export function parseNumber(s) {
   const n = Number(t);
   return Number.isFinite(n) ? n : null;
 }
+
+const CJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uff66-\uff9f]/;
+
+/**
+ * Short name for the week calendar (spec 4.3): the one set in Rename, or the first word of the
+ * name, at most 6 characters (3 for Chinese, Japanese or Korean), cut without "…".
+ */
+export function shortNameOf(t) {
+  if (t.shortName) return t.shortName;
+  const first = String(t.name || '').trim().split(/\s+/)[0] || '';
+  return [...first].slice(0, CJK.test(first) ? 3 : 6).join('');
+}

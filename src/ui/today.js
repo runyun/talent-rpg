@@ -13,7 +13,12 @@ import { recordAt, instanceForTalent } from '../model/schedule.js';
 import {
   todayCards, stateCard, nextSlot, practicedToday, todaysRecords,
 } from '../model/today.js';
-import { shownTarget, tooCloseToGoal } from '../model/practice.js';
+import { shownTarget, tooCloseToGoal, dirOf } from '../model/practice.js';
+import { STAR, challengeEntry, gateFor } from '../model/challenge.js';
+import { fmtStep } from '../format.js';
+import { savePlayer } from '../store.js';
+import { openSheet, closeSheet } from './widgets.js';
+import { sundayCardDue, renderSundayCard, sameSlotsNotice } from './sunday.js';
 import { badgeIcon, titleNode } from './appearance.js';
 import { roleTag } from './widgets.js';
 import {
@@ -77,8 +82,9 @@ export function weekHeader(week) {
     el('span', { class: 'num small' }, count));
 }
 
-function nameRow(talent, now, { gate = false } = {}) {
+function nameRow(talent, now) {
   const done = practicedToday(state, now, talent.id);
+  const gate = gateFor(state, weekKey(now)) === talent.id;
   return el('div', { class: 'card-name' },
     el('span', { class: 'card-name-left' },
       el('span', { class: 'talent-name' }, talent.name),
@@ -98,9 +104,55 @@ function needsWorkPart(talent) {
       el('span', { class: 'chev muted', 'aria-hidden': 'true' }, '›')));
 }
 
+/** A hint box: outline, optional second line, and a chevron when it can be tapped. */
+function hintBox(first, second, onTap) {
+  const inner = [el('span', { class: 'hint-lines' }, el('span', {}, first), second ? el('span', { class: 'muted small' }, second) : null)];
+  if (onTap) {
+    inner.push(el('span', { class: 'chev muted', 'aria-hidden': 'true' }, '›'));
+    return el('button', { type: 'button', class: 'hint hint-tap', onclick: onTap }, inner);
+  }
+  return el('div', { class: 'hint' }, inner);
+}
+
+/** Card hint (5.1.1 item 2): challenge > plateau > return; at most one. */
+function hintFor(t, now) {
+  const entry = challengeEntry(state, t, now);
+  if (entry) {
+    const out = [];
+    if (entry.ready) {
+      out.push(hintBox(entry.rank === STAR ? text('S211') : text('S144', { rank: entry.rank }), text('S145'), () => app.challenge(t.id)));
+    } else {
+      out.push(hintBox(text('S146', { rank: entry.rank === STAR ? 'S' : entry.rank }), null, null));
+    }
+    const seen = state.player.seenExplanations || [];
+    if (!seen.includes('S185')) {
+      out.push(el('p', { class: 'muted small' }, text('S185')));
+      savePlayer({ ...state.player, seenExplanations: [...seen, 'S185'] });
+    }
+    return out;
+  }
+  if (t.plateau && t.plateau.active) {
+    return [hintBox(text('S147', { step: fmtStep(t, t.step, dirOf(t)) }), text('S148'), () => plateauSheet(t))];
+  }
+  if (state.player.returnActive) return [hintBox(text('S149'), text('S150'), null)];
+  return [];
+}
+
+/** Plateau sheet: change a check, or one Checkpoint (spec 5.1.1, 7.4). */
+function plateauSheet(t) {
+  openSheet([
+    el('div', { class: 'group-card' },
+      el('button', { type: 'button', class: 'row row-tap', onclick: () => { closeSheet({ instant: true }); app.talent(t.id, { openChecks: true }); } },
+        el('span', { class: 'row-label' }, raw('L126')), el('span', { class: 'chev muted' }, '›')),
+      t.plateau.checkpointOffered ? null : el('button', { type: 'button', class: 'row row-tap', onclick: () => { closeSheet({ instant: true }); app.checkpoint(t.id); } },
+        el('span', { class: 'row-label' }, raw('L125')), el('span', { class: 'chev muted' }, '›'))),
+    el('button', { type: 'button', class: 'btn btn-text-wide', onclick: () => closeSheet() }, raw('L03')),
+  ]);
+}
+
 function taskCard(c, week, now) {
   const t = c.talent;
-  const parts = [nameRow(t, now)];
+  const parts = [nameRow(t, now), ...hintFor(t, now)];
   if (c.inst && c.mode === 'past') {
     // Neutral note with the original slot time: no "missed", no red (spec 5.1.1 item 3).
     parts.push(el('p', { class: 'muted small' }, text('S72', { day: dayLabel(c.inst.start, now), time: hm(c.inst.start) })));
@@ -119,6 +171,7 @@ function taskCard(c, week, now) {
       ...checks.map((s) => el('span', { class: 'check-line' }, s))));
   }
   if (nw) parts.push(nw);
+  if (state.player.returnActive) parts.push(el('p', {}, text('S151')));
   if (week.atRisk) parts.push(el('p', { class: 'muted small' }, text('S07', { done: week.done, planned: week.planned })));
   return parts;
 }
@@ -236,6 +289,11 @@ function bottomFor(c, now, refreshBottom) {
       else if (!tooCloseToGoal(c.talent, v)) refreshBottom(text('S243'));
     }, 'btn btn-primary btn-main');
     primary.disabled = value === null || tooCloseToGoal(c.talent, value);
+  } else if (state.player.returnActive) {
+    // Return (6.16): Quick is the main button; I practiced moves next to More.
+    return el('div', { class: 'today-bottom' },
+      btn(raw('L101'), () => openQuick(c, now), 'btn btn-primary btn-main'),
+      el('div', { class: 'btn-pair' }, btn(raw('L100'), () => openReport(c, now)), more));
   } else {
     primary = btn(raw('L100'), () => openReport(c, now), 'btn btn-primary btn-main');
   }
@@ -340,6 +398,11 @@ function dotsAndHint(cards, at) {
  */
 export function renderToday(root, { refresh = false } = {}) {
   const now = new Date();
+  if (sundayCardDue(state, now)) {
+    paint(root, renderSundayCard(now), refresh);
+    return;
+  }
+  sameSlotsNotice(now);
   if (ui.extraId && !state.talents.some((t) => t.id === ui.extraId && t.role !== 'dormant')) ui.extraId = null;
   const { cards, week } = todayCards(state, now, ui.extraId);
 

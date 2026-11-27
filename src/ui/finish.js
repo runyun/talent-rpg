@@ -110,7 +110,7 @@ export function renderFinish(root, { view, snapshot, talent }) {
   }
 
   const rows = [];
-  rows.push(row(L117[0], text('S172', { exp: view.exp })));
+  rows.push(row(L117[0], text('S172', { exp: view.exp }), view.gate ? el('span', { class: 'muted small' }, ` ${text('S173')}`) : null));
   rows.push(el('div', { class: 'result-bar' }, expBar(view)));
   if (view.firstExp) rows.push(el('p', { class: 'muted small' }, text('S60')));
   rows.push(view.winNow

@@ -4,7 +4,7 @@ import { openDb, requestPersistence, touchOpen, put } from './db.js';
 import { mount } from './dom.js';
 import { raw } from './text.js';
 import {
-  state, loadState, savePlayer, saveWorld, practicesSince, saveVaultCatchUp,
+  state, loadState, savePlayer, saveWorld, practicesSince, saveVaultCatchUp, applyUpdates,
 } from './store.js';
 import {
   renderCompanion, renderGreeting, needsGreeting, companionsOn,
@@ -20,7 +20,11 @@ import { isStandalone, renderInstall } from './ui/install.js';
 import { renderWelcome } from './ui/welcome.js';
 import { renderToday } from './ui/today.js';
 import { renderTalentsTab } from './ui/talents.js';
-import { renderTalent, renderNeedsWork, renderTalentPage } from './ui/talent.js';
+import {
+  renderTalent, renderNeedsWork, renderTalentPage, renderTargetStep,
+} from './ui/talent.js';
+import { renderChallengeIntro, renderChallengeRun, renderChallengeResult } from './ui/challenge.js';
+import { returnUpdates } from './model/challenge.js';
 import { renderWorld, renderMe, renderSettings } from './ui/tabs.js';
 import { renderGuide, renderHowItWorks } from './ui/guide.js';
 import { renderAddTalent } from './ui/addTalent.js';
@@ -162,6 +166,9 @@ function show(next, withTabs = null) {
 /** Daily catch-up at every open: companion days and vault draws (spec 7.8, 7.9). */
 async function dailyChecks() {
   const now = new Date();
+  // Back after 7 days or more: every target one step easier, once (spec 6.16).
+  const back = returnUpdates(state, now);
+  if (back) await applyUpdates(back);
   await companionCatchUp(now);
   await vaultCatchUpNow(now);
 }
@@ -226,7 +233,11 @@ app.refresh = ({ force = false } = {}) => {
 
 // Pages with the tab bar.
 const PAGES = {
-  talent: (r) => renderTalent(root, r.arg),
+  talent: (r) => {
+    renderTalent(root, r.arg, r.opts || {});
+    r.opts = null; // open the checks sheet only once
+  },
+  targetStep: (r) => renderTargetStep(root, r.arg),
   needsWork: (r) => renderNeedsWork(root, r.arg),
   talentPage: (r) => renderTalentPage(root, r.arg, r.arg2),
   companion: (r) => renderCompanion(root, r.arg),
@@ -253,7 +264,8 @@ app.back = () => {
   else app.tab(currentTab);
 };
 
-app.talent = (id) => openPage({ name: 'talent', arg: id });
+app.talent = (id, opts) => openPage({ name: 'talent', arg: id, opts });
+app.targetStep = (id) => openPage({ name: 'targetStep', arg: id });
 app.needsWork = (id) => openPage({ name: 'needsWork', arg: id });
 app.talentPage = (id, which) => openPage({ name: 'talentPage', arg: id, arg2: which });
 app.companion = (id) => openPage({ name: 'companion', arg: id });
@@ -295,6 +307,31 @@ app.setup = (talentId) => {
     onCancel: () => app.tab(from),
     onDone: () => app.home(),
   });
+};
+
+// Challenge and Checkpoint (spec 5.7): full screen.
+let challengeFrom = null;
+/** Back from a challenge intro: the page or tab it was opened from. */
+app.challengeBack = () => {
+  if (challengeFrom && PAGES[challengeFrom.name]) openPage(challengeFrom, { push: false });
+  else app.tab(currentTab);
+};
+app.challenge = (talentId) => {
+  if (route && route.name !== 'challengeRun') challengeFrom = route;
+  show({ name: 'challenge', arg: talentId })();
+  renderChallengeIntro(root, talentId, 'challenge');
+};
+app.checkpoint = (talentId) => {
+  show({ name: 'checkpoint', arg: talentId })();
+  renderChallengeIntro(root, talentId, 'checkpoint');
+};
+app.challengeRun = (talentId) => {
+  show({ name: 'challengeRun', arg: talentId })();
+  renderChallengeRun(root, talentId);
+};
+app.challengeResult = (data) => {
+  show({ name: 'challengeResult' })();
+  renderChallengeResult(root, data);
 };
 
 app.finish = (data) => {

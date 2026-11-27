@@ -118,6 +118,13 @@ export const S = {
   S225: 'Plateau: the step was halved to {step}.',
 
   // Talents and the talent page
+  S298: '{n} more for a weekly win',
+  S299: 'Filled = practiced · Outlined = slot, tap to move it',
+  S300: 'Grey time = starts next week',
+  S301: '✓ {day}',
+  S302: '+{n}',
+  S315: 'No slots or practice this week.',
+  S316: 'Shown in the week view. Up to 6 characters.',
   S212: 'Active · {used} of {slots} slots',
   S213: 'Reach Rank C on any talent to open one more slot.',
   S215: '{value} of {goal}',
@@ -401,6 +408,7 @@ export const L = {
   L157: 'Data',
   L163: 'Reset all data',
   L164: 'Reset',
+  L165: 'Short name',
   L69: ['Companions', 'System Vault', 'Lucky numbers', 'Auto pick', 'About your data', 'Validation data'],
   L83: ['Open', 'Locked', 'Off'],
   L93: ['How it works', 'Practice', 'Growth', 'World', 'Rewards'],

@@ -158,7 +158,7 @@ export async function applyUpdates({ talents = [], slots = [], player = null }) 
  * Returns an undo snapshot: everything needed to put the data back as it was.
  */
 export async function commitRecord({
-  record, talent, player, week, tickets = [], revealed = [], feedItem = null,
+  record, talent, player, week, tickets = [], revealed = [], feedItems = [],
 }) {
   const snapshot = {
     recordId: record.id,
@@ -168,7 +168,7 @@ export async function commitRecord({
     weekStart: week ? week.weekStart : null,
     draws: revealed.map((d) => structuredClone(state.draws.find((x) => x.draw === d.draw))).filter(Boolean),
     ticketIds: [],
-    feedId: null,
+    feedIds: [],
   };
   await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed'], (tx) => {
     tx.objectStore('sessions').put(record);
@@ -180,9 +180,9 @@ export async function commitRecord({
       req.onsuccess = () => snapshot.ticketIds.push(req.result);
     }
     for (const d of revealed) tx.objectStore('draws').put(d);
-    if (feedItem) {
-      const req = tx.objectStore('feed').add(feedItem);
-      req.onsuccess = () => { snapshot.feedId = req.result; };
+    for (const f of feedItems) {
+      const req = tx.objectStore('feed').add(f);
+      req.onsuccess = () => { snapshot.feedIds.push(req.result); };
     }
   });
   tickets.forEach((t, i) => state.tickets.push({ ...t, id: snapshot.ticketIds[i] }));
@@ -191,7 +191,7 @@ export async function commitRecord({
   if (talent) replaceIn(state.talents, talent);
   state.player = player;
   if (week) state.weeks.set(week.weekStart, week);
-  if (feedItem) state.feed.push({ ...feedItem, id: snapshot.feedId });
+  feedItems.forEach((f, i) => state.feed.push({ ...f, id: snapshot.feedIds[i] }));
   return snapshot;
 }
 
@@ -205,7 +205,7 @@ export async function undoRecord(snapshot) {
     else if (snapshot.weekStart) tx.objectStore('weeks').delete(snapshot.weekStart);
     for (const id of snapshot.ticketIds) tx.objectStore('tickets').delete(id);
     for (const d of snapshot.draws) tx.objectStore('draws').put(d);
-    if (snapshot.feedId !== null) tx.objectStore('feed').delete(snapshot.feedId);
+    for (const fid of snapshot.feedIds) tx.objectStore('feed').delete(fid);
   });
   state.sessions = state.sessions.filter((s) => s.id !== snapshot.recordId);
   if (snapshot.talent) replaceIn(state.talents, snapshot.talent);
@@ -215,7 +215,8 @@ export async function undoRecord(snapshot) {
   const dropped = new Set(snapshot.ticketIds);
   state.tickets = state.tickets.filter((t) => !dropped.has(t.id));
   for (const d of snapshot.draws) replaceIn(state.draws, d, 'draw');
-  if (snapshot.feedId !== null) state.feed = state.feed.filter((x) => x.id !== snapshot.feedId);
+  const feedGone = new Set(snapshot.feedIds);
+  state.feed = state.feed.filter((x) => !feedGone.has(x.id));
 }
 
 // ---- Old recordings (spec 4.8) ----

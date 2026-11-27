@@ -42,6 +42,8 @@ export const CONFIG = Object.freeze({
 
   returnAfterDays: 7,
 
+  plateau: { bounces: 3 }, // same value eased 3 times (spec 7.4)
+
   mana: { weeklyWin: 5, perRank: 10 },
 
   vault: {

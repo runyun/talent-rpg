@@ -8,6 +8,7 @@ import {
 } from '../store.js';
 import { shownTarget } from '../model/practice.js';
 import { todayCards } from '../model/today.js';
+import { STAR, challengeEntry } from '../model/challenge.js';
 import {
   openSheet, closeSheet, textInput, toggle,
 } from './widgets.js';
@@ -32,9 +33,37 @@ export async function addNeedsWork(talentId, value) {
   await saveTalent({ ...t, needsWork: [...(t.needsWork || []), { id: newId(), text: value, createdAt: Date.now() }] });
 }
 
+// ---- Challenge first? (5.3.3) ----
+
+/** Before practice or Quick: offer an open challenge once per rank. Returns true when shown. */
+function challengeFirst(card, now, then) {
+  const t = talentById(card.talent.id);
+  const entry = challengeEntry(state, t, now);
+  const asked = (t.challenge && t.challenge.askedFirst) || [];
+  if (!entry || !entry.ready || asked.includes(entry.rank)) return false;
+  openSheet([
+    el('h2', { class: 'sheet-title' }, text('S191')),
+    el('p', { class: 'muted' }, text('S192', { rank: entry.rank === STAR ? 'S' : entry.rank })),
+    el('button', { type: 'button', class: 'btn btn-primary btn-main', onclick: () => { closeSheet({ instant: true }); app.challenge(t.id); } }, raw('L119')),
+    el('button', {
+      type: 'button',
+      class: 'btn',
+      onclick: async () => {
+        const cur = talentById(t.id);
+        await saveTalent({ ...cur, challenge: { ...cur.challenge, askedFirst: [...asked, entry.rank] } });
+        closeSheet({ instant: true });
+        then();
+      },
+    }, raw('L108')),
+  ]);
+  return true;
+}
+
 // ---- Report (5.3.1): tap Passed or Not yet and it is saved ----
 
-export function openReport(card, now, { seenLine = null } = {}) {
+export function openReport(card, now, opts = {}) {
+  if (!opts.skipFirst && challengeFirst(card, now, () => openReport(card, now, { skipFirst: true }))) return;
+  const { seenLine = null } = opts;
   const talent = talentById(card.talent.id);
   const checks = (talent.checks || []).filter(Boolean);
   const missed = new Set();
@@ -96,8 +125,9 @@ export function openReport(card, now, { seenLine = null } = {}) {
 
 // ---- Quick (6.5) ----
 
-export function openQuick(card, now) {
+export function openQuick(card, now, opts = {}) {
   if (!card) return;
+  if (!opts.skipFirst && challengeFirst(card, now, () => openQuick(card, now, { skipFirst: true }))) return;
   const talent = talentById(card.talent.id);
   const value = fmtValue(talent, shownTarget(talent));
   const oldest = (talent.needsWork || []).slice().sort((a, b) => a.createdAt - b.createdAt)[0];

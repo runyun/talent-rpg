@@ -118,7 +118,11 @@ export function onLongPress(node, onLong, onTap) {
     const t = e.touches[0];
     if (Math.abs(t.clientX - x0) > 10 || Math.abs(t.clientY - y0) > 10) cancel();
   }, { passive: true });
-  node.addEventListener('touchend', cancel);
+  node.addEventListener('touchend', (e) => {
+    cancel();
+    // After a long press, the finger lifting must not also tap the sheet that just opened.
+    if (fired && e.cancelable) e.preventDefault();
+  });
   node.addEventListener('touchcancel', cancel);
   node.addEventListener('contextmenu', (e) => {
     // Desktop preview: right click acts as long press.

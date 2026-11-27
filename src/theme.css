@@ -1613,3 +1613,228 @@ html:has(.inverse) body {
   width: 24px;
   height: 24px;
 }
+
+/* ---- Stage 10B ---- */
+
+/* Card hint boxes: thin frame, chevron when it can be tapped (spec 3.1, 5.1.1). */
+.hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg);
+  text-align: left;
+}
+
+.hint-tap {
+  border-color: var(--fg);
+  cursor: pointer;
+}
+
+.hint-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Talents: the week calendar (spec 5.2 item 2). */
+.cal {
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.cal-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 0;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 0.75em;
+}
+
+.cal-date.is-today {
+  background: var(--fg);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.cal-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.cal-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 3px 1px;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 0.7em;
+  line-height: 1.2;
+  overflow: hidden;
+}
+
+.cal-name {
+  font-weight: 700;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.cal-cell.filled {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.cal-cell.outlined {
+  border-color: var(--fg);
+  cursor: pointer;
+}
+
+.cal-cell.gray {
+  color: var(--muted);
+}
+
+/* Full-screen challenge and Checkpoint screens (spec 5.7). */
+.full {
+  min-height: calc(100dvh - var(--top-pad) - var(--bottom-space));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.full-bottom {
+  margin-top: auto;
+}
+
+.challenge-card {
+  align-items: center;
+  text-align: center;
+}
+
+.challenge-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 24px 0;
+  text-align: center;
+}
+
+.rules {
+  margin: 0;
+  padding-left: 1.6em;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  counter-reset: rule;
+}
+
+.rules > li {
+  counter-increment: rule;
+  position: relative;
+}
+
+.rules > li::before {
+  content: counter(rule);
+  position: absolute;
+  left: -1.6em;
+  width: 1.2em;
+  height: 1.2em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.8em;
+  text-align: center;
+  line-height: 1.2em;
+}
+
+.ladder-big .ladder-dot {
+  width: 18px;
+  height: 18px;
+}
+
+.inverse .ladder-step {
+  color: #595959;
+}
+
+.inverse .ladder-step.on {
+  color: #000000;
+}
+
+.inverse .ladder-dot {
+  border-color: #595959;
+}
+
+.inverse .ladder-step.on .ladder-dot {
+  background: #000000;
+  border-color: #000000;
+}
+
+.inverse .ladder-step.now .ladder-dot {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px #000000;
+}
+
+.ladder-step.fill-in .ladder-dot {
+  animation: fade-in 150ms ease-out both;
+  animation-delay: inherit;
+}
+
+.inverse .line-tap {
+  border-color: #c7c7c7;
+}
+
+/* Sunday card (spec 6.11). */
+.sunday-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-top-split {
+  justify-content: space-between;
+}
+
+.save-top {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.save-top:disabled {
+  color: var(--muted);
+}
+
+/* Buttons on the inverted screens (white background). */
+.inverse .btn {
+  border-color: #000000;
+  color: #000000;
+  background: transparent;
+}
+
+.inverse .btn-primary {
+  background: #000000;
+  color: #ffffff;
+}
