@@ -3,7 +3,7 @@
 
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
-import { fromDateKey } from '../time.js';
+import { fromDateKey, monthDay } from '../time.js';
 import { state, saveSettings } from '../store.js';
 import {
   currentPool, drawDate, drawNumbers, sortTickets,
@@ -13,8 +13,7 @@ import {
 } from './widgets.js';
 import { app } from './app.js';
 
-const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
-const fmtDate = (key) => monthDay.format(fromDateKey(key));
+const fmtDate = (key) => monthDay(fromDateKey(key));
 
 export function vaultVisible() {
   return state.player.vaultUnlocked && !(state.settings && state.settings.vaultOn === false);
@@ -25,12 +24,13 @@ function visibleDraws() {
   return state.draws.filter((d) => d.revealed).sort((a, b) => b.draw - a.draw);
 }
 
+// L67: Pool, Next draw, Lucky, No jackpot, Jackpot, Prize, No prize
 function resultLabel(d) {
   const L67 = raw('L67');
   if (!d.you || !d.you.tickets) return null;
-  if (d.you.jackpots) return L67[6];
+  if (d.you.jackpots) return L67[4];
   if (d.you.prizes.length) return L67[5];
-  return L67[4];
+  return L67[6];
 }
 
 export function renderVaultSection() {
@@ -39,20 +39,37 @@ export function renderVaultSection() {
   const now = new Date();
   const next = state.vault.lastDraw + 1;
   const mine = state.tickets.filter((t) => t.draw === next && t.owner === 0);
-  const row = (label, value) => el('div', { class: 'item-row' }, el('span', { class: 'muted' }, label), el('span', { class: 'num' }, value));
-  const recent = visibleDraws().slice(0, 10).map((d) => el('div', { class: 'item-row' },
-    el('span', { class: 'num' }, `#${d.draw} · ${fmtDate(d.date)} · ${d.numbers.join(' · ')}`),
-    el('span', { class: 'muted small' }, resultLabel(d) || '')));
-
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, raw('L60')[3]),
-    row(L67[0], `${fmtDate(drawDate(next))} 00:00`),
-    row(L67[1], String(currentPool(state.vault, state.tickets, now))),
-    row(L67[2], String(mine.length)),
-    ...mine.map((t) => el('p', { class: 'num small muted ticket-line' }, t.numbers.join(' · '))),
-    recent.length ? el('h3', { class: 'item-head muted small' }, L67[3]) : null,
-    ...recent,
-    el('button', { type: 'button', class: 'btn', onclick: () => app.vaultRules() }, raw('L37')));
+  const lucky = state.settings && state.settings.luckyNumbers;
+  const isLucky = (t) => lucky && lucky.length === 3 && lucky.slice().sort((a, b) => a - b).join() === t.numbers.join();
+  const draws = visibleDraws();
+  const last = draws[0];
+  const drawRow = (d) => {
+    const [a, b, c] = d.numbers;
+    return el('div', { class: 'row' },
+      el('span', { class: 'row-label num small' }, text('S71', {
+        draw: d.draw, date: fmtDate(d.date), a, b, c, count: d.ticketCount, pool: d.poolBefore,
+      })),
+      el('span', { class: 'row-value muted small' }, resultLabel(d) || ''));
+  };
+  return el('div', { class: 'vault' },
+    el('h2', { class: 'section-head' }, raw('L140')[1]),
+    el('section', { class: 'card vault-card' },
+      el('div', { class: 'mana-line' }, el('span', { class: 'small muted' }, L67[0]), el('span', { class: 'small muted' }, L67[1])),
+      el('div', { class: 'mana-line' },
+        el('span', { class: 'level-big num' }, String(currentPool(state.vault, state.tickets, now))),
+        el('span', { class: 'num' }, `${fmtDate(drawDate(next))} 00:00`))),
+    el('section', { class: 'group' },
+      el('h2', { class: 'group-title' }, text('S281', { count: mine.length })),
+      mine.length ? el('div', { class: 'group-card' }, mine.map((t) => el('div', { class: 'row' },
+        el('span', { class: 'row-label num' }, t.numbers.join(' · ')),
+        isLucky(t) ? el('span', { class: 'row-value muted small' }, L67[2]) : null))) : null,
+      el('p', { class: 'muted small' }, text('S253'))),
+    last ? el('section', { class: 'group' },
+      el('h2', { class: 'group-title' }, text('S282', { draw: last.draw })),
+      el('div', { class: 'group-card' }, draws.slice(0, 10).map(drawRow))) : null,
+    el('section', { class: 'group' }, el('div', { class: 'group-card' },
+      el('button', { type: 'button', class: 'row row-tap', onclick: () => app.vaultRules() },
+        el('span', { class: 'row-label' }, raw('L37')), el('span', { class: 'chev muted' }, '›')))));
 }
 
 // ---- Rules & verification (spec 5.11) ----
@@ -126,8 +143,8 @@ export function luckyNumbersSheet(onSaved) {
     closeSheet();
     onSaved();
   };
-  openSheet(el('div', { class: 'stack' },
-    el('p', { class: 'muted small' }, raw('L69')[2]),
+  openSheet([
+    el('h2', { class: 'sheet-title' }, raw('L69')[2]),
     el('div', { class: 'lucky-grid' }, buttons),
     el('button', {
       type: 'button',
@@ -137,5 +154,6 @@ export function luckyNumbersSheet(onSaved) {
       },
     }, raw('L21')),
     el('button', { type: 'button', class: 'btn', onclick: () => save(null) }, raw('L69')[3]),
-    el('button', { type: 'button', class: 'btn-text', onclick: closeSheet }, raw('L03'))));
+    el('button', { type: 'button', class: 'btn btn-text-wide', onclick: () => closeSheet() }, raw('L03')),
+  ]);
 }

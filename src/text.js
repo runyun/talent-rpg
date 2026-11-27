@@ -6,9 +6,11 @@
 //   Never show blanks or "undefined".
 // - Count 1 uses the singular of the following plural noun; any other count uses the plural.
 
-import { S, P, E, C, L, G, ITEMS } from './strings.js';
+import {
+  S, E, C, L, G, H, ITEMS,
+} from './strings.js';
 
-const TABLES = [S, P, E, L];
+const TABLES = [S, E, L];
 
 // System tags like [TRIAL] (spec 3): each theme shows them with its own symbols.
 // In the copy they are always written [TAG]. text() marks them with two private-use
@@ -38,6 +40,10 @@ const SINGULAR = {
   jackpots: 'jackpot',
   differences: 'difference',
   weeks: 'week',
+  steps: 'step',
+  practices: 'practice',
+  passes: 'pass',
+  companions: 'companion',
 };
 
 function isMissing(value) {
@@ -122,7 +128,7 @@ function removeUnit(str, placeholder) {
   return s;
 }
 
-/** Look up a code and fill it. For array entries, pass an index: text('L49', {}, 2). */
+/** Look up a code and fill it. For array entries, pass an index: text('L81', {}, 2). */
 export function text(key, vars = {}, index) {
   let entry = raw(key);
   if (Array.isArray(entry)) {
@@ -138,10 +144,19 @@ export function tagOf(key) {
   return m ? m[1] : '';
 }
 
-/** Guide entry (G01-G13): { title, text, unlock }. */
+/** Guide entry (G series): { group, title, text, unlock }. */
 export function guide(key) {
   return G[key];
 }
+
+export const GUIDE_KEYS = Object.keys(G);
+
+/** How it works step (H series): { title, text, example }. */
+export function how(key) {
+  return H[key];
+}
+
+export const HOW_KEYS = Object.keys(H);
 
 /** Congratulation line by tone: 'gentle' | 'brief' | 'firedUp'. */
 export function congrats(key, tone, vars = {}) {

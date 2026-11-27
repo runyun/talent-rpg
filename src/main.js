@@ -1,34 +1,31 @@
 // App entry: register the offline worker, open storage, route between screens.
 
 import { openDb, requestPersistence, touchOpen, put } from './db.js';
-import { el, mount } from './dom.js';
-import { text, raw } from './text.js';
+import { mount } from './dom.js';
+import { raw } from './text.js';
 import {
-  state, loadState, loadActive, savePlayer, applyUpdates, saveWorld, practicesSince, saveVaultCatchUp,
+  state, loadState, savePlayer, saveWorld, practicesSince, saveVaultCatchUp,
 } from './store.js';
-import { plateauUpdates, returnUpdates } from './model/plateau.js';
-import { renderTrial, leaveTrial } from './ui/trial.js';
-import { stopPlaying, isPlaying } from './ui/media.js';
 import {
   renderCompanion, renderGreeting, needsGreeting, companionsOn,
 } from './ui/companions.js';
 import { initialWorld, catchUp } from './model/companionSim.js';
 import { vaultCatchUp } from './model/vault.js';
 import { renderVaultRules, vaultVisible } from './ui/vault.js';
-import { renderValidation } from './ui/validation.js';
 import { applyTheme, renderAppearance } from './ui/appearance.js';
 import { dateKey } from './time.js';
+import { el } from './dom.js';
 import { app } from './ui/app.js';
 import { isStandalone, renderInstall } from './ui/install.js';
 import { renderWelcome } from './ui/welcome.js';
-import { renderToday, renderTalentsTab } from './ui/home.js';
+import { renderToday } from './ui/today.js';
+import { renderTalentsTab } from './ui/talents.js';
+import { renderTalent, renderNeedsWork, renderTalentPage } from './ui/talent.js';
 import { renderWorld, renderMe, renderSettings } from './ui/tabs.js';
-import { renderGuide } from './ui/guide.js';
+import { renderGuide, renderHowItWorks } from './ui/guide.js';
 import { renderAddTalent } from './ui/addTalent.js';
-import { renderTalent } from './ui/talent.js';
-import { renderTimer, stopTimer } from './ui/timer.js';
-import { renderFinish } from './ui/finish.js';
-import { closeSheet } from './ui/widgets.js';
+import { renderFinish, stopFinish } from './ui/finish.js';
+import { closeSheet, sheetIsOpen, hideNote } from './ui/widgets.js';
 
 const root = document.getElementById('app');
 let screen = null;
@@ -112,13 +109,14 @@ async function applyWaitingUpdate() {
 }
 
 // ---- Screens and tabs (spec 5.0) ----
-// Tab roots: today, talents, world, me. Pages (talent, companion, vault rules, appearance,
-// guide, settings, validation) keep the tab bar. Timer, finish, trial, add talent, first use
-// and the rank-up screen are full screen without it.
+// Tab roots: today, talents, world, me. Pages keep the tab bar and go back to where they were
+// opened from. Finish, Add talent, Set up, Ask AI and first use are full screen without it.
 
 const TABS = ['today', 'talents', 'world', 'me'];
 let currentTab = 'today';
-let route = null; // { name, arg } of the screen on show, for app.refresh()
+let route = null; // { name, arg, arg2 } of the screen on show
+let history = []; // pages opened on top of the current tab root
+let cleanupFlow = null;
 
 const tabBar = el('nav', { class: 'tabbar', hidden: true });
 document.body.append(tabBar);
@@ -141,34 +139,33 @@ function paintTabBar(active) {
 }
 
 /** Leave the current screen. withTabs: the tab whose bar is shown, or null for full screen. */
-function show(name, withTabs = null, arg = null) {
-  if (screen === 'timer' && name !== 'timer') stopTimer();
-  if (screen === 'trial') leaveTrial();
-  stopPlaying();
-  closeSheet();
-  const same = route && route.name === name && route.arg === arg;
+function show(next, withTabs = null) {
+  if (cleanupFlow) {
+    cleanupFlow();
+    cleanupFlow = null;
+  }
+  if (screen === 'finish' && next.name !== 'finish') stopFinish();
+  closeSheet({ instant: true });
+  if (next.name !== 'tab:today') hideNote();
+  const same = route && route.name === next.name && route.arg === next.arg && route.arg2 === next.arg2;
   const y = window.scrollY;
-  screen = name;
-  route = { name, arg };
+  screen = next.name;
+  route = next;
   tabBar.hidden = !withTabs;
   document.body.classList.toggle('with-tabs', Boolean(withTabs));
+  document.body.classList.toggle('on-today', next.name === 'tab:today');
   if (withTabs) paintTabBar(withTabs);
-  // Same screen again (a refresh): keep the scroll position after rendering.
+  // Same screen again (a refresh): keep the scroll position.
   return () => window.scrollTo(0, same ? y : 0);
 }
 
-/** Daily rule checks: return card (7 days away), Plateau Dungeon start / end, companion days. */
+/** Daily catch-up at every open: companion days and vault draws (spec 7.8, 7.9). */
 async function dailyChecks() {
   const now = new Date();
-  const back = returnUpdates(state, now);
-  if (back) await applyUpdates(back);
-  const plateau = plateauUpdates(state, now);
-  await applyUpdates(plateau);
   await companionCatchUp(now);
   await vaultCatchUpNow(now);
 }
 
-/** Companion tickets and every draw that is due (spec 7.8: computed at each open). */
 async function vaultCatchUpNow(now) {
   const since = state.vault
     ? state.vault.ticketedThrough
@@ -187,7 +184,6 @@ async function vaultCatchUpNow(now) {
   if (changed) await saveVaultCatchUp(out);
 }
 
-/** Simulate the companions from the last simulated day up to today (spec 7.9). */
 async function companionCatchUp(now) {
   const today = dateKey(now);
   const world = state.world
@@ -199,112 +195,124 @@ async function companionCatchUp(now) {
 }
 
 /** A tab root. Today is where the app always opens (spec 5.0). */
-app.tab = (name) => {
+app.tab = (name, { refresh = false } = {}) => {
   if (name === 'world' && !worldVisible()) name = 'today';
   if (name === 'today' && needsGreeting()) {
-    // First meeting with 3 companions (spec 5.7 step 4), once.
-    show('greeting')();
+    // First meeting with 3 companions (spec 5.17 step 4), once.
+    show({ name: 'greeting' })();
     renderGreeting(root);
     return;
   }
   currentTab = name;
-  const scroll = show(`tab:${name}`, name);
-  if (name === 'today') renderToday(root);
+  history = [];
+  const scroll = show({ name: `tab:${name}` }, name);
+  if (name === 'today') renderToday(root, { refresh });
   else if (name === 'talents') renderTalentsTab(root);
   else if (name === 'world') renderWorld(root);
   else renderMe(root);
-  scroll();
+  if (!refresh) scroll();
 };
 
 app.home = () => app.tab('today');
 
-/** Back arrow of a page: the tab it was opened from. */
-app.back = () => app.tab(currentTab);
-
-/** Draw the current screen again with fresh data (after a change made on it). */
-app.refresh = () => {
+/** Draw the current screen again with fresh data. force: Today redraws even when nothing changed. */
+app.refresh = ({ force = false } = {}) => {
   if (!route) return;
-  const { name, arg } = route;
-  if (name.startsWith('tab:')) app.tab(name.slice(4));
-  else if (name === 'talent') app.talent(arg);
-  else if (name === 'companion') app.companion(arg);
-  else if (name === 'vaultRules') app.vaultRules(arg);
-  else if (name === 'appearance') app.appearance();
-  else if (name === 'guide') app.guide();
-  else if (name === 'settings') app.settings();
-  else if (name === 'validation') app.validation();
+  const { name } = route;
+  if (name.startsWith('tab:')) app.tab(name.slice(4), { refresh: !force });
+  else if (PAGES[name]) openPage(route, { push: false });
   else app.home();
 };
 
-/** A page with the tab bar. tab: the tab that stays selected. */
-function page(name, tab, arg, render) {
-  currentTab = tab;
-  const scroll = show(name, tab, arg);
-  const done = render();
-  if (done && done.then) done.then(scroll);
-  else scroll();
+// Pages with the tab bar.
+const PAGES = {
+  talent: (r) => renderTalent(root, r.arg),
+  needsWork: (r) => renderNeedsWork(root, r.arg),
+  talentPage: (r) => renderTalentPage(root, r.arg, r.arg2),
+  companion: (r) => renderCompanion(root, r.arg),
+  vaultRules: (r) => renderVaultRules(root, r.arg),
+  appearance: () => renderAppearance(root),
+  guide: () => renderGuide(root),
+  howItWorks: () => renderHowItWorks(root),
+  settings: () => renderSettings(root),
+};
+
+function openPage(r, { push = true } = {}) {
+  if (push && route && route.name !== r.name && (PAGES[route.name] || route.name.startsWith('tab:'))) {
+    if (PAGES[route.name]) history.push(route);
+  }
+  const scroll = show(r, currentTab);
+  PAGES[r.name](r);
+  scroll();
 }
 
-app.talent = (talentId) => page('talent', currentTab, talentId, () => renderTalent(root, talentId));
-app.companion = (id) => page('companion', 'world', id, () => renderCompanion(root, id));
-app.vaultRules = (draw = null) => page('vaultRules', 'world', draw, () => renderVaultRules(root, draw));
-app.appearance = () => page('appearance', 'me', null, () => renderAppearance(root));
-app.guide = () => page('guide', 'me', null, () => renderGuide(root));
-app.settings = () => page('settings', 'me', null, () => renderSettings(root));
-app.validation = () => page('validation', 'me', null, () => renderValidation(root));
+/** Back arrow of a page: the page or tab it was opened from. */
+app.back = () => {
+  const prev = history.pop();
+  if (prev) openPage(prev, { push: false });
+  else app.tab(currentTab);
+};
+
+app.talent = (id) => openPage({ name: 'talent', arg: id });
+app.needsWork = (id) => openPage({ name: 'needsWork', arg: id });
+app.talentPage = (id, which) => openPage({ name: 'talentPage', arg: id, arg2: which });
+app.companion = (id) => openPage({ name: 'companion', arg: id });
+app.vaultRules = (draw = null) => openPage({ name: 'vaultRules', arg: draw });
+app.appearance = () => openPage({ name: 'appearance' });
+app.guide = () => openPage({ name: 'guide' });
+app.howItWorks = () => openPage({ name: 'howItWorks' });
+app.settings = () => openPage({ name: 'settings' });
 
 // ---- Full-screen screens ----
 
 app.welcome = () => {
-  show('welcome')();
+  show({ name: 'welcome' })();
   mount(root, renderWelcome({ onContinue: () => app.addTalent({ onboarding: true }) }));
 };
 
 app.addTalent = ({ onboarding = false } = {}) => {
   const from = currentTab;
-  show('addTalent')();
-  mount(root, renderAddTalent({
+  show({ name: 'addTalent' })();
+  cleanupFlow = renderAddTalent(root, {
     onboarding,
     onCancel: () => app.tab(from),
-    onDone: async (talent) => {
-      if (onboarding) await savePlayer({ ...state.player, onboardingDone: true });
-      // Baseline now or later (spec 5.6 step 5).
-      show('baselinePrompt')();
-      mount(root, el('section', { class: 'finish fade-in' },
-        el('div', { class: 'card frame card-auto' }, el('p', { class: 'task' }, text('S08', { talent: talent.name, piece: talent.trialWork }))),
-        el('div', { class: 'focus-bottom' },
-          el('button', { type: 'button', class: 'btn btn-primary btn-start', onclick: () => app.trial({ talentId: talent.id, kind: 'baseline' }) }, raw('L09')),
-          el('button', { type: 'button', class: 'btn', onclick: () => (onboarding ? app.home() : app.tab(from)) }, raw('L11')))));
+    onDone: async () => {
+      if (onboarding) {
+        await savePlayer({ ...state.player, onboardingDone: true });
+        app.home();
+        return;
+      }
+      app.tab(from === 'today' ? 'today' : 'talents');
     },
-  }));
+  });
 };
 
-app.trial = ({ talentId, kind, role }) => {
-  show('trial')();
-  renderTrial(root, { talentId, kind, role });
+app.setup = (talentId) => {
+  const from = currentTab;
+  show({ name: 'setup', arg: talentId })();
+  cleanupFlow = renderAddTalent(root, {
+    setupId: talentId,
+    onCancel: () => app.tab(from),
+    onDone: () => app.home(),
+  });
 };
 
-app.timer = (active) => {
-  show('timer')();
-  renderTimer(root, active);
+app.finish = (data) => {
+  hideNote();
+  show({ name: 'finish' })();
+  renderFinish(root, data);
 };
 
-app.finish = (active) => {
-  show('finish')();
-  renderFinish(root, active);
-};
-
-// Keep Today current (slot windows open and close with the clock).
-// Not while a sheet is open, a recording plays, or a text field is being typed in.
+// Keep Today current (slot windows open and close with the clock). Only what changed is
+// redrawn (renderToday compares). Not while a sheet is open or a text field is in use.
 const canRefresh = () => screen === 'tab:today'
-  && !document.querySelector('.sheet-backdrop')
-  && !isPlaying()
+  && !sheetIsOpen()
   && !(document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName));
 setInterval(() => {
   if (canRefresh()) app.refresh();
 }, 30 * 1000);
 document.addEventListener('visibilitychange', async () => {
-  if (document.hidden || !screen || !screen.startsWith('tab:')) return;
+  if (document.hidden || !screen || !screen.startsWith('tab:') || !state.player) return;
   await dailyChecks();
   if (canRefresh()) app.refresh();
 });
@@ -318,26 +326,13 @@ async function boot() {
   requestPersistence();
   await touchOpen(db);
   await loadState(db);
-  applyTheme(state.player.equipped && state.player.equipped.theme);
+  applyTheme();
 
   // Validation metric (spec 4.12): one record per open.
   state.openedAt = Date.now();
-  state.openMetricId = await put(db, 'metrics', {
-    type: 'open', openedAt: state.openedAt, secondsToStart: null, practiced: false,
-  }).catch(() => null);
+  state.openMetricId = await put(db, 'metrics', { type: 'open', openedAt: state.openedAt, practiced: false }).catch(() => null);
 
   await dailyChecks();
-
-  // A session that was running when the app was closed.
-  const active = await loadActive();
-  if (active && active.status === 'running') {
-    app.timer(active);
-    return;
-  }
-  if (active && active.status === 'finished') {
-    app.finish(active);
-    return;
-  }
 
   if (!state.player.onboardingDone) {
     if (!isStandalone()) {

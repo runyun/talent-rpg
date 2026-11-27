@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0-a (stage-10a)
+
+First part of spec version 19: a new practice model. Data schema v5 with a migration from v3/v4.
+
+- Data v5 and migration. Nothing is deleted. Each talent gets a focus (its old trial piece, or its name), a unit (the old trial unit) and a start (its latest trial value); goal and step are left empty and the talent shows a Set up card. Ranks stay. Each attribute's current material becomes a Needs work line ("Fundamentals: ..."). Fields that are no longer used are kept under `legacy`. Slots lose their length (kept under `legacy`) and count from this week. Old sessions stay (Mini becomes Quick). Trials, recordings, attributes, the feed and companions stay. Mana Stones become Mana. Owned and equipped themes move to the new theme ids. Talent slots = 2 + talents that reached Rank C. Any failure rolls the whole upgrade back.
+- Practice model: one focus per talent, today's target (one number), a goal (= Rank S), a fixed step, more-is-better or less-is-better from the numbers, whole numbers or one decimal. Two passes in a row move the target one step toward the goal; two misses move it one step back, never below the start. Rank values E-S are cut from the steps.
+- Find your start: the first practice of a new talent measures where you are (the only time you type a number). Set up: talents from before 0.8 set a goal on Add talent pages 2-4.
+- Add talent in 7 pages, one question each, with an example box: name and goal, focus, now/goal/unit with a step slider and a live result card, up to 3 checks, role (talent slots and one Main), slots. Ask AI: copy a prompt to any AI and paste the answer back to fill the pages (the app itself connects to nothing).
+- Today: title row with Lv, this week's 7 cells, swipeable task cards (one per talent with a slot in its window or past it), dots and "Swipe for ...", I practiced / Quick / More. A past slot only adds a gray line. State cards: All done today, No slot today, no talents (or all dormant). Today redraws only when something on it changed.
+- Report sheet: tap any check you missed, then Passed or Not yet; that saves it. Finish screen with the target change, EXP bar, week, Lv, Mana, vault results and the next target, then back to Today with "Saved · Undo" for 3 seconds. Undo takes back the whole practice.
+- Quick (one try, no pass or fail, 6 EXP, no ticket), Needs work and Fixed lists, More (Other talent, Reschedule, Edit needs work, Open talent page).
+- Slot windows: 15 min before to 60 min after the start. Slots added after their time this week start next week. Weekly win, at-risk line, Mana 5 for a weekly win. EXP: 40 per practice and Find your start, 6 for Quick.
+- Talents tab and talent page in their new form (focus, checks, needs work, old trials under Challenges, old recordings to play or delete, slots, role). Target & step, challenges, plateau, return and the Sunday card come in stage 10B.
+- Removed: timer, metronome, keep-screen-awake, recording and photos, the four attributes, sizes, difficulty answers, trials and the Plateau Dungeon. The Validation data page is hidden until stage 10C (metrics are still recorded). Every screen uses the Mono theme until stage 10D.
+- Copy: the copy file follows the version 19 copy sheet; deleted codes are gone.
+
 ## 0.7.0 (stage-7)
 
 First round of trial feedback (spec version 14). No data schema change.

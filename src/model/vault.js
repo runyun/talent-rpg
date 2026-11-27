@@ -2,7 +2,7 @@
 //
 // Draw k opens at 00:00 local time on 2026-01-01 + 3k days (draw 1 = 2026-01-04).
 // A ticket belongs to the first draw after the moment it was made.
-// Pool of draw k = pool left after draw k-1 + number of tickets of draw k (each ticket adds 1 stone).
+// Pool of draw k = pool left after draw k-1 + number of tickets of draw k (each ticket adds 1 Mana).
 // Everything is reproducible: numbers come from SHA-256 of the draw date and its tickets.
 
 import { CONFIG } from '../config.js';
@@ -80,10 +80,10 @@ export function matches(ticket, numbers) {
 const FRAME_CODES = ['singleLine', 'doubleLine', 'dashed', 'bold', 'rounded', 'squareBrackets', 'doubleBrackets', 'none'];
 export { FRAME_CODES };
 
-/** A prize ticket gives 10 stones or a title frame (by seed); the frame is checked again at reveal. */
+/** A prize ticket gives 10 Mana or a title frame (by seed); the frame is checked again at reveal. */
 function prizeFor(k, ticket) {
   const r = makeRng(`prize|${k}|${ticket.createdAt}|${ticket.seq || 0}`);
-  if (r() < 0.5) return { type: 'stones', n: V.prizeStones };
+  if (r() < 0.5) return { type: 'mana', n: V.prizeMana };
   return { type: 'frame', pick: r() }; // which frame is decided at reveal, among frames not owned then
 }
 
@@ -155,15 +155,15 @@ export function revealDraws(player, draws) {
         p.owned.titleFrames.push(code);
         label = ITEMS.titleFrames[FRAME_CODES.indexOf(code)];
       } else {
-        p.magicStones += V.prizeStones;
-        label = text('L73', { n: V.prizeStones });
+        p.mana = (p.mana || 0) + V.prizeMana;
+        label = text('L73', { n: V.prizeMana });
       }
       prizeCount += 1;
       dLines.push({ key: 'S42', vars: { draw: d.draw, prize: label } });
     }
     if (!dLines.length) {
       const [a, b, c] = d.numbers;
-      dLines.push({ key: 'S41', vars: { draw: d.draw, a, b, c, k: d.you.tickets } });
+      dLines.push({ key: 'S41', vars: { draw: d.draw, a, b, c, count: d.you.tickets } });
     }
     detail.push(...dLines);
   }
@@ -228,7 +228,7 @@ export function currentPool(vault, tickets, now) {
   return vault.carry + tickets.filter((t) => t.draw === next && t.createdAt <= now.getTime()).length;
 }
 
-/** Release 1/5 of the pending jackpot after a Standard or Deep session (spec 7.8). */
+/** Release 1/5 of the pending jackpot after a practice (spec 7.8). */
 export function releasePending(player) {
   const pend = player.pendingPrize || { total: 0, remaining: 0 };
   if (!pend.remaining) return null;
@@ -237,7 +237,7 @@ export function releasePending(player) {
   return {
     player: {
       ...player,
-      magicStones: player.magicStones + m,
+      mana: (player.mana || 0) + m,
       pendingPrize: { total: remaining ? pend.total : 0, remaining },
     },
     line: { key: 'S45', vars: { m, r: remaining } },

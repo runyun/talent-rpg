@@ -1,6 +1,6 @@
 # talent-rpg
 
-An offline web app for iPhone that tells you what to practice right now and for how long.
+An offline web app for iPhone that tells you what to reach today, lets you report a practice in one or two taps, and shows each step toward your goal.
 
 - Live: https://runyun.github.io/talent-rpg/
 - Static files only (plain HTML, CSS and JavaScript modules). No build step, no dependencies, no network requests besides the app's own files.
@@ -17,6 +17,9 @@ An offline web app for iPhone that tells you what to practice right now and for 
 | `src/text.js` | Fills `{variables}` in copy, drops parts with missing values, singular/plural |
 | `src/config.js` | All tunable numbers |
 | `src/db.js` | IndexedDB schema and step-by-step migrations |
+| `src/migrateV5.js` | Data v4 (or v3) to v5 |
+| `src/format.js` | Number and value display |
+| `src/model/` | Rules: practice, schedule, records, Today cards, roles, vault, companions |
 | `src/ui/` | Screens |
 
 ## Releasing a version

@@ -79,18 +79,51 @@ export function fromLocalStamp(s) {
   return at(k, t);
 }
 
-/** Today / Tomorrow / Mon-Sun (L55). */
+const monthDayFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const monthFmt = new Intl.DateTimeFormat('en-US', { month: 'long' });
+
+/** 'Nov 19' (fixed format, spec section 2). */
+export function monthDay(d) {
+  return monthDayFmt.format(d);
+}
+
+/** 'November' */
+export function monthName(d) {
+  return monthFmt.format(d);
+}
+
+/** 'Nov 19' for a 'YYYY-MM-DD' key. */
+export function fmtDateKey(key) {
+  return monthDayFmt.format(fromDateKey(key));
+}
+
+/** Whole calendar days from a to b (b - a). */
+export function daysBetween(a, b) {
+  return Math.round((startOfDay(b) - startOfDay(a)) / DAY);
+}
+
+/**
+ * {day} (copy sheet variables): Today / Tomorrow / Yesterday / Mon-Sun.
+ * 7 or more days ahead (the same weekday next week) or 7 or more days back: the date (Nov 27).
+ */
 export function dayLabel(d, now) {
   const labels = raw('L55');
-  const diff = Math.round((startOfDay(d) - startOfDay(now)) / DAY);
+  const diff = daysBetween(now, d);
   if (diff === 0) return labels[0];
   if (diff === 1) return labels[1];
+  if (diff === -1) return labels[2];
+  if (diff >= 7 || diff <= -7) return monthDay(d);
   return weekdayLabel(isoWeekday(d));
 }
 
 /** Mon-Sun label for weekday 1-7. */
 export function weekdayLabel(weekday) {
-  return raw('L55')[weekday + 1];
+  return raw('L55')[weekday + 2];
+}
+
+/** One-letter weekday (M T W T F S S), from L55. */
+export function weekdayLetter(weekday) {
+  return weekdayLabel(weekday).charAt(0);
 }
 
 export function sameDay(a, b) {

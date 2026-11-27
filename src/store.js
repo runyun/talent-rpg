@@ -1,59 +1,56 @@
 // In-memory app state loaded from IndexedDB, plus write-through save helpers.
-// The data set is small (a few talents, slots and sessions), so everything is kept in memory.
+// The data set is small (a few talents, slots and records), so everything is kept in memory.
 
-import { getAll, get, put, transact, PLAYER_ID } from './db.js';
+import {
+  getAll, get, put, transact, PLAYER_ID,
+} from './db.js';
+import { dateKey } from './time.js';
+import { recordAt } from './model/schedule.js';
 
 export const state = {
   db: null,
   player: null,
   settings: null,
   talents: [],
-  attrs: new Map(), // talentId -> [4 attributes]
   slots: [],
-  sessions: [],
+  sessions: [], // practice records (spec 4.5), oldest first
   weeks: new Map(), // weekStart -> week record
-  trials: [], // trial records (baseline / trial / retry / awakenRetest)
-  media: [], // recordings, photos and text (blobs are loaded lazily by the browser)
+  trials: [], // trial records from before data v5 (read only, spec 4.6)
+  media: [], // recordings from before data v5 (play or delete only, spec 4.8)
   world: null, // companions: { global, companions: [30 states] }
-  feed: [], // feed items of the last 8 days
+  feed: [], // feed items of the last days
   vault: null, // { id: 'state', startDraw, lastDraw, carry, ticketedThrough }
   tickets: [],
   draws: [],
   openMetricId: null,
-  startPressedThisOpen: false,
+  openedAt: 0,
 };
 
 export async function loadState(db) {
   state.db = db;
-  const [player, settings, talents, attributes, slots, sessions, weeks, trials, media] = await Promise.all([
+  const [player, settings, talents, slots, sessions, weeks, trials, media] = await Promise.all([
     get(db, 'player', PLAYER_ID),
     get(db, 'settings', 'main'),
     getAll(db, 'talents'),
-    getAll(db, 'attributes'),
     getAll(db, 'slots'),
     getAll(db, 'sessions'),
     getAll(db, 'weeks'),
     getAll(db, 'trials'),
     getAll(db, 'media'),
   ]);
-  state.trials = trials.sort((a, b) => a.at - b.at);
+  state.player = player;
+  state.settings = settings;
+  state.talents = talents.sort((a, b) => a.createdAt - b.createdAt);
+  state.slots = slots.sort((a, b) => a.createdAt - b.createdAt);
+  state.sessions = sessions.sort((a, b) => recordAt(a) - recordAt(b));
+  state.weeks = new Map(weeks.map((w) => [w.weekStart, w]));
+  state.trials = trials.sort((a, b) => (a.at || 0) - (b.at || 0));
   state.media = media.sort((a, b) => a.createdAt - b.createdAt);
   await loadWorld();
   const [vaultRecs, tickets, draws] = await Promise.all([getAll(db, 'vault'), getAll(db, 'tickets'), getAll(db, 'draws')]);
   state.vault = vaultRecs.find((r) => r.id === 'state') || null;
   state.tickets = tickets;
   state.draws = draws.sort((a, b) => a.draw - b.draw);
-  state.player = player;
-  state.settings = settings;
-  state.talents = talents.sort((a, b) => a.createdAt - b.createdAt);
-  state.attrs = new Map();
-  for (const a of attributes) {
-    if (!state.attrs.has(a.talentId)) state.attrs.set(a.talentId, []);
-    state.attrs.get(a.talentId)[a.index] = a;
-  }
-  state.slots = slots.sort((a, b) => a.createdAt - b.createdAt);
-  state.sessions = sessions.sort((a, b) => a.startedAt - b.startedAt);
-  state.weeks = new Map(weeks.map((w) => [w.weekStart, w]));
 }
 
 export function newId() {
@@ -65,38 +62,35 @@ export function talentById(id) {
   return state.talents.find((t) => t.id === id);
 }
 
-export function attrsOf(talentId) {
-  return state.attrs.get(talentId) || [];
-}
-
 export function slotsOf(talentId) {
   return state.slots.filter((s) => s.talentId === talentId);
 }
 
-// ---- Writes ----
-
-export async function savePlayer(player) {
-  state.player = player;
-  await put(state.db, 'player', player);
+export function recordsOf(talentId) {
+  return state.sessions.filter((s) => s.talentId === talentId);
 }
 
-export async function saveAttribute(attr) {
-  await put(state.db, 'attributes', attr);
-  state.attrs.get(attr.talentId)[attr.index] = attr;
+// ---- Writes ----
+
+function replaceIn(list, item, key = 'id') {
+  const i = list.findIndex((x) => x[key] === item[key]);
+  if (i === -1) list.push(item);
+  else list[i] = item;
+}
+
+export async function savePlayer(player) {
+  await put(state.db, 'player', player);
+  state.player = player;
 }
 
 export async function saveTalent(talent) {
   await put(state.db, 'talents', talent);
-  const i = state.talents.findIndex((t) => t.id === talent.id);
-  if (i === -1) state.talents.push(talent);
-  else state.talents[i] = talent;
+  replaceIn(state.talents, talent);
 }
 
 export async function saveSlot(slot) {
   await put(state.db, 'slots', slot);
-  const i = state.slots.findIndex((s) => s.id === slot.id);
-  if (i === -1) state.slots.push(slot);
-  else state.slots[i] = slot;
+  replaceIn(state.slots, slot);
 }
 
 export async function deleteSlot(slotId) {
@@ -111,23 +105,21 @@ export async function saveWeek(week) {
 
 export function weekRecord(wk) {
   return state.weeks.get(wk) || {
-    weekStart: wk, planned: 0, done: 0, won: false, nextWeekConfirmed: false, anxiety: null, sameSlotsNoticeShown: false,
+    weekStart: wk, planned: 0, done: 0, passes: 0, won: false, nextWeekConfirmed: false, anxiety: null,
   };
 }
 
-/** Add a talent with its 4 attributes and slots in one transaction. */
-export async function addTalent(talent, attributes, slots) {
-  await transact(state.db, ['talents', 'attributes', 'slots'], (tx) => {
+/** Add a talent with its slots in one transaction. */
+export async function addTalent(talent, slots) {
+  await transact(state.db, ['talents', 'slots'], (tx) => {
     tx.objectStore('talents').put(talent);
-    for (const a of attributes) tx.objectStore('attributes').put(a);
     for (const s of slots) tx.objectStore('slots').put(s);
   });
   state.talents.push(talent);
-  state.attrs.set(talent.id, attributes.slice());
   state.slots.push(...slots);
 }
 
-/** Delete a talent and everything that belongs to it (records and recordings). */
+/** Delete a talent and everything that belongs to it (records, trials, recordings, slots). */
 export async function deleteTalent(talentId) {
   const byTalent = ['sessions', 'trials', 'media', 'attributes', 'slots'];
   const keys = {};
@@ -140,110 +132,102 @@ export async function deleteTalent(talentId) {
     for (const store of byTalent) for (const k of keys[store]) tx.objectStore(store).delete(k);
   });
   state.talents = state.talents.filter((t) => t.id !== talentId);
-  state.attrs.delete(talentId);
   state.slots = state.slots.filter((s) => s.talentId !== talentId);
   state.sessions = state.sessions.filter((s) => s.talentId !== talentId);
   state.trials = state.trials.filter((t) => t.talentId !== talentId);
   state.media = state.media.filter((m) => m.talentId !== talentId);
 }
 
-/** Save changed attributes, talents, slots and the player together. */
-export async function applyUpdates({ attrs = [], talents = [], slots = [], player = null }) {
-  if (!attrs.length && !talents.length && !slots.length && !player) return;
-  await transact(state.db, ['attributes', 'talents', 'slots', 'player'], (tx) => {
-    for (const a of attrs) tx.objectStore('attributes').put(a);
+/** Save changed talents, slots and the player together. */
+export async function applyUpdates({ talents = [], slots = [], player = null }) {
+  if (!talents.length && !slots.length && !player) return;
+  await transact(state.db, ['talents', 'slots', 'player'], (tx) => {
     for (const t of talents) tx.objectStore('talents').put(t);
     for (const s of slots) tx.objectStore('slots').put(s);
     if (player) tx.objectStore('player').put(player);
   });
-  for (const a of attrs) state.attrs.get(a.talentId)[a.index] = a;
-  for (const t of talents) {
-    const i = state.talents.findIndex((x) => x.id === t.id);
-    if (i !== -1) state.talents[i] = t;
-  }
-  for (const s of slots) {
-    const i = state.slots.findIndex((x) => x.id === s.id);
-    if (i !== -1) state.slots[i] = s;
-    else state.slots.push(s);
-  }
+  for (const t of talents) replaceIn(state.talents, t);
+  for (const s of slots) replaceIn(state.slots, s);
   if (player) state.player = player;
 }
 
-// ---- Trials and media ----
-
-export function mediaById(id) {
-  return state.media.find((m) => m.id === id) || null;
-}
-
-/** Save a trial record with its talent change and its media in one transaction. */
-export async function saveTrial({ trial, talent, media = [], attrs = [] }) {
-  await transact(state.db, ['trials', 'talents', 'media', 'attributes'], (tx) => {
-    for (const m of media) tx.objectStore('media').put(m);
-    tx.objectStore('trials').put(trial);
-    if (talent) tx.objectStore('talents').put(talent);
-    for (const a of attrs) tx.objectStore('attributes').put(a);
-  });
-  state.media.push(...media);
-  const i = state.trials.findIndex((t) => t.id === trial.id);
-  if (i === -1) state.trials.push(trial);
-  else state.trials[i] = trial;
-  if (talent) {
-    const j = state.talents.findIndex((t) => t.id === talent.id);
-    if (j !== -1) state.talents[j] = talent;
-  }
-  for (const a of attrs) state.attrs.get(a.talentId)[a.index] = a;
-}
+// ---- Practice records and Undo (spec 5.3.2) ----
 
 /**
- * Save a 30-sec record and link it to a session. Keeps the newest N per talent (spec 4.8):
- * older 30-sec records are deleted. Trial recordings are always kept.
+ * Commit a finished practice with all its effects in one transaction.
+ * Returns an undo snapshot: everything needed to put the data back as it was.
  */
-export async function saveEvidence(media, sessionId, keep) {
-  const mine = state.media.filter((m) => m.talentId === media.talentId && m.type === 'evidence30s');
-  const drop = mine.length + 1 > keep ? mine.slice(0, mine.length + 1 - keep) : [];
-  const session = state.sessions.find((s) => s.id === sessionId);
-  await transact(state.db, ['media', 'sessions'], (tx) => {
-    tx.objectStore('media').put(media);
-    for (const m of drop) tx.objectStore('media').delete(m.id);
-    if (session) tx.objectStore('sessions').put({ ...session, evidenceId: media.id });
-  });
-  const dropIds = new Set(drop.map((m) => m.id));
-  state.media = state.media.filter((m) => !dropIds.has(m.id));
-  state.media.push(media);
-  if (session) session.evidenceId = media.id;
-}
-
-/** Commit a finished session with all its effects in one transaction. */
-export async function commitSession({
-  session, attr, player, week, tickets = [], revealed = [],
+export async function commitRecord({
+  record, talent, player, week, tickets = [], revealed = [], feedItem = null,
 }) {
-  const ids = [];
-  await transact(state.db, ['sessions', 'attributes', 'player', 'weeks', 'meta', 'tickets', 'draws'], (tx) => {
-    tx.objectStore('sessions').put(session);
-    if (attr) tx.objectStore('attributes').put(attr);
+  const snapshot = {
+    recordId: record.id,
+    talent: talent ? structuredClone(talentById(talent.id)) : null,
+    player: structuredClone(state.player),
+    week: week && state.weeks.has(week.weekStart) ? structuredClone(state.weeks.get(week.weekStart)) : null,
+    weekStart: week ? week.weekStart : null,
+    draws: revealed.map((d) => structuredClone(state.draws.find((x) => x.draw === d.draw))).filter(Boolean),
+    ticketIds: [],
+    feedId: null,
+  };
+  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed'], (tx) => {
+    tx.objectStore('sessions').put(record);
+    if (talent) tx.objectStore('talents').put(talent);
     tx.objectStore('player').put(player);
     if (week) tx.objectStore('weeks').put(week);
-    tx.objectStore('meta').delete('activeSession');
     for (const t of tickets) {
       const req = tx.objectStore('tickets').add(t);
-      req.onsuccess = () => ids.push(req.result);
+      req.onsuccess = () => snapshot.ticketIds.push(req.result);
     }
     for (const d of revealed) tx.objectStore('draws').put(d);
+    if (feedItem) {
+      const req = tx.objectStore('feed').add(feedItem);
+      req.onsuccess = () => { snapshot.feedId = req.result; };
+    }
   });
-  tickets.forEach((t, i) => state.tickets.push({ ...t, id: ids[i] }));
-  for (const d of revealed) {
-    const i = state.draws.findIndex((x) => x.draw === d.draw);
-    if (i !== -1) state.draws[i] = d;
-  }
-  state.sessions.push(session);
-  if (attr) state.attrs.get(attr.talentId)[attr.index] = attr;
+  tickets.forEach((t, i) => state.tickets.push({ ...t, id: snapshot.ticketIds[i] }));
+  for (const d of revealed) replaceIn(state.draws, d, 'draw');
+  state.sessions.push(record);
+  if (talent) replaceIn(state.talents, talent);
   state.player = player;
   if (week) state.weeks.set(week.weekStart, week);
+  if (feedItem) state.feed.push({ ...feedItem, id: snapshot.feedId });
+  return snapshot;
+}
+
+/** Undo a committed practice: everything goes back; revealed draws become unrevealed again. */
+export async function undoRecord(snapshot) {
+  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed'], (tx) => {
+    tx.objectStore('sessions').delete(snapshot.recordId);
+    if (snapshot.talent) tx.objectStore('talents').put(snapshot.talent);
+    tx.objectStore('player').put(snapshot.player);
+    if (snapshot.week) tx.objectStore('weeks').put(snapshot.week);
+    else if (snapshot.weekStart) tx.objectStore('weeks').delete(snapshot.weekStart);
+    for (const id of snapshot.ticketIds) tx.objectStore('tickets').delete(id);
+    for (const d of snapshot.draws) tx.objectStore('draws').put(d);
+    if (snapshot.feedId !== null) tx.objectStore('feed').delete(snapshot.feedId);
+  });
+  state.sessions = state.sessions.filter((s) => s.id !== snapshot.recordId);
+  if (snapshot.talent) replaceIn(state.talents, snapshot.talent);
+  state.player = snapshot.player;
+  if (snapshot.week) state.weeks.set(snapshot.weekStart, snapshot.week);
+  else if (snapshot.weekStart) state.weeks.delete(snapshot.weekStart);
+  const dropped = new Set(snapshot.ticketIds);
+  state.tickets = state.tickets.filter((t) => !dropped.has(t.id));
+  for (const d of snapshot.draws) replaceIn(state.draws, d, 'draw');
+  if (snapshot.feedId !== null) state.feed = state.feed.filter((x) => x.id !== snapshot.feedId);
+}
+
+// ---- Old recordings (spec 4.8) ----
+
+export async function deleteMedia(id) {
+  await transact(state.db, ['media'], (tx) => tx.objectStore('media').delete(id));
+  state.media = state.media.filter((m) => m.id !== id);
 }
 
 // ---- Companions ----
 
-const FEED_DAYS = 8; // today + 7 days back (spec 7.11)
+const FEED_DAYS = 8;
 
 export async function loadWorld() {
   const records = await getAll(state.db, 'companionState');
@@ -257,8 +241,7 @@ export async function loadWorld() {
 export async function loadFeed() {
   const from = new Date();
   from.setDate(from.getDate() - FEED_DAYS);
-  const key = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
-  state.feed = await getAll(state.db, 'feed', 'date', IDBKeyRange.lowerBound(key));
+  state.feed = await getAll(state.db, 'feed', 'date', IDBKeyRange.lowerBound(dateKey(from)));
 }
 
 /** Save the simulated world and the new feed items in one transaction. */
@@ -274,12 +257,6 @@ export async function saveWorld(world, items) {
   await loadFeed();
 }
 
-/** Your milestone in the feed (weekly win, rank up). */
-export async function addFeedItem(item) {
-  await transact(state.db, ['feed'], (tx) => tx.objectStore('feed').add(item));
-  state.feed.push(item);
-}
-
 /** All companion practice items since a date (for vault tickets; the in-memory feed only keeps 8 days). */
 export async function practicesSince(dateKeyExclusive) {
   const items = await getAll(state.db, 'feed', 'date', IDBKeyRange.lowerBound(dateKeyExclusive, true));
@@ -287,7 +264,9 @@ export async function practicesSince(dateKeyExclusive) {
 }
 
 /** Save the vault catch-up: new companion tickets, computed draws, vault state, feed items. */
-export async function saveVaultCatchUp({ vault, newTickets, draws, feedItems }) {
+export async function saveVaultCatchUp({
+  vault, newTickets, draws, feedItems,
+}) {
   const ids = [];
   await transact(state.db, ['vault', 'tickets', 'draws', 'feed'], (tx) => {
     tx.objectStore('vault').put(vault);
@@ -307,21 +286,6 @@ export async function saveVaultCatchUp({ vault, newTickets, draws, feedItems }) 
 export async function saveSettings(settings) {
   await put(state.db, 'settings', settings);
   state.settings = settings;
-}
-
-// ---- Running session (survives the app being closed) ----
-
-export async function saveActive(active) {
-  await put(state.db, 'meta', { key: 'activeSession', value: active });
-}
-
-export async function loadActive() {
-  const rec = await get(state.db, 'meta', 'activeSession');
-  return rec ? rec.value : null;
-}
-
-export async function clearActive() {
-  await transact(state.db, ['meta'], (tx) => tx.objectStore('meta').delete('activeSession'));
 }
 
 // ---- Validation metrics (spec 4.12) ----

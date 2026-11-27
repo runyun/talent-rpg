@@ -6,10 +6,12 @@
 //
 // Migrations:
 // - MIGRATIONS[i] upgrades schema version i to i + 1. They run in order inside the single
-//   IndexedDB upgrade transaction, so v1 -> v2 -> v3 can chain.
+//   IndexedDB upgrade transaction, so v1 -> v2 -> v3 -> v4 -> v5 can chain.
 // - If any step throws or a request fails, the whole upgrade transaction aborts and IndexedDB
 //   rolls back to the old version with the old data untouched. Never "drop and rebuild".
 // - A migration may only use the given `db` / `tx` (no other async work, or the transaction closes).
+
+import { migrateV4toV5 } from './migrateV5.js';
 
 export const DB_NAME = 'talent-rpg';
 
@@ -119,6 +121,10 @@ export const MIGRATIONS = [
   migrate_v1_v2,
   // 2 -> 3: companion fields
   migrate_v2_v3,
+  // 3 -> 4: spec version 17 (data v4) was never shipped; nothing changes.
+  () => {},
+  // 4 -> 5: version 19 practice model (migrateV5.js)
+  (db, tx) => migrateV4toV5(db, tx, updateAll),
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
@@ -241,22 +247,27 @@ export const SETTINGS_ID = 'main';
 export function defaultPlayer(now) {
   return {
     id: PLAYER_ID,
+    schema: 5,
     firstOpenedAt: now,
     lastOpenedAt: now,
     lastPracticedAt: null,
     totalExp: 0,
-    magicStones: 0,
+    mana: 0,
     vaultUnlocked: false,
     pendingPrize: { total: 0, remaining: 0 },
-    owned: { themes: ['pureBlack'], badges: ['circle'], titleFrames: ['none'], legendaryTitles: [] },
-    equipped: { theme: 'pureBlack', badge: 'circle', titleFrame: 'none', title: null },
+    owned: {
+      themes: ['mono'], badges: ['circle'], titleFrames: ['none'], legendaryTitles: [], keepsakes: [],
+    },
+    equipped: {
+      theme: 'mono', badge: 'circle', titleFrame: 'none', title: null,
+    },
     weeklyWins: 0,
     practiceDays: 0,
+    talentSlots: 2,
+    gate: [],
     onboardingDone: false,
     seenExplanations: [],
-    returnHandledFor: null,
-    returnActive: false,
-    plateauCheckedWeek: null,
+    freeLogbookUsed: false,
     companionsGreeted: false,
   };
 }

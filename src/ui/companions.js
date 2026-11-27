@@ -3,14 +3,14 @@
 
 import { el, mount } from '../dom.js';
 import { text, raw, congrats } from '../text.js';
-import { dateKey, fromDateKey, hm, addDays, weekdayLabel, isoWeekday } from '../time.js';
+import {
+  dateKey, fromDateKey, hm, addDays, weekdayLabel, isoWeekday,
+} from '../time.js';
 import { COMPANIONS } from '../data/companions.js';
 import { state, savePlayer } from '../store.js';
 import { selectFeed, congratulators, lastSevenDays } from '../model/companionSim.js';
 import { backButton } from './widgets.js';
 import { app } from './app.js';
-
-const monthDay = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
 
 export function companionById(id) {
   return COMPANIONS[id - 1];
@@ -35,26 +35,26 @@ export function renderFeedSection() {
   const now = new Date();
   const labels = raw('L66');
   const days = [];
-  for (let i = 0; i <= 7; i += 1) {
+  for (let i = 0; i <= 1; i += 1) {
     const day = dateKey(addDays(now, -i));
     let items = state.feed.filter((x) => x.date === day);
     if (i === 0) items = items.filter((x) => x.time <= hm(now)); // nothing from later today
     const picked = selectFeed(items, day);
     if (!picked.length) continue;
-    const heading = i === 0 ? labels[0] : i === 1 ? labels[1] : monthDay.format(fromDateKey(day));
-    days.push(el('div', { class: 'feed-day' },
-      el('p', { class: 'muted small' }, heading),
-      ...picked.map((it) => {
-        const line = el('span', {}, feedLine(it));
-        const time = it.type === 'practice' || it.type === 'rankUp' ? el('span', { class: 'num muted small' }, it.time) : null;
+    const heading = labels[i];
+    days.push(el('section', { class: 'group' },
+      el('h2', { class: 'group-title' }, heading),
+      el('div', { class: 'group-card' }, picked.map((it) => {
+        const line = el('span', { class: 'row-label' }, feedLine(it));
+        const time = it.type === 'practice' || it.type === 'rankUp' ? el('span', { class: 'row-sub num muted small' }, it.time) : null;
         if (it.companionId) {
-          return el('button', { type: 'button', class: 'feed-item', onclick: () => app.companion(it.companionId) }, time, line);
+          return el('button', { type: 'button', class: 'row row-tap feed-item', onclick: () => app.companion(it.companionId) }, el('span', { class: 'row-main' }, line, time));
         }
-        return el('div', { class: 'feed-item' }, time, line);
-      })));
+        return el('div', { class: 'row feed-item' }, el('span', { class: 'row-main' }, line, time));
+      }))));
   }
-  return el('section', { class: 'section' },
-    el('h2', { class: 'section-title' }, raw('L60')[2]),
+  return el('div', { class: 'feed' },
+    el('h2', { class: 'section-head' }, raw('L140')[0]),
     ...days);
 }
 
@@ -78,13 +78,11 @@ export function renderCompanion(root, id) {
     el('p', { class: 'muted small' }, text('S53')),
     el('h1', { class: 'page-title' }, c.title),
     row(L65[0], c.talent),
-    row(L65[1], c.personality),
-    row(L65[2], text('L48', { rank: s.rank })),
-    row(L65[3], `${Math.round(c.attendance * 100)}%`),
-    row(L65[4], c.preferredTime),
-    ev ? row(L65[5], text(ev.key, { name: c.title, talent: c.talent }, 0)) : null,
+    row(L65[1], text('L48', { rank: s.rank })),
+    row(L65[2], c.personality),
+    ev ? el('p', { class: 'small' }, text(ev.key, { name: c.title, talent: c.talent }, 0)) : null,
     el('div', { class: 'profile-row' },
-      el('span', { class: 'muted small' }, L65[6]),
+      el('span', { class: 'muted small' }, L65[3]),
       el('div', { class: 'week-dots' }, week.map((d) => el('span', { class: `week-dot${d.practiced ? ' on' : ''}` },
         el('span', { class: 'small muted' }, weekdayLabel(isoWeekday(fromDateKey(d.day)))),
         el('span', { class: 'num' }, d.practiced ? '✓' : '·')))))));
