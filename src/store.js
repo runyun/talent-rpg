@@ -288,6 +288,21 @@ export async function saveSettings(settings) {
   state.settings = settings;
 }
 
+// ---- Reset all data (spec 5.10.1) ----
+
+/**
+ * Delete every record in one transaction (all or nothing). The schema version stays, so the
+ * next start is a first open. Throws when it did not finish; then nothing was deleted.
+ */
+export async function resetAllData() {
+  const db = state.db;
+  const stores = [...db.objectStoreNames];
+  await transact(db, stores, (tx) => {
+    for (const name of stores) tx.objectStore(name).clear();
+    if (stores.includes('meta')) tx.objectStore('meta').put({ key: 'schemaVersion', value: db.version, migratedAt: Date.now() });
+  });
+}
+
 // ---- Validation metrics (spec 4.12) ----
 
 export async function addMetric(record) {

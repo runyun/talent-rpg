@@ -5,12 +5,14 @@
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
 import { APP_VERSION } from '../version.js';
-import { state, saveSettings, addMetric } from '../store.js';
+import {
+  state, saveSettings, addMetric, resetAllData,
+} from '../store.js';
 import { levelProgress } from '../model/record.js';
 import { renderFeedSection, companionsOn } from './companions.js';
 import { renderVaultSection, luckyLabel, luckyNumbersSheet } from './vault.js';
 import {
-  backButton, group, navRow, infoRow, toggle,
+  backButton, group, navRow, infoRow, toggle, openSheet, closeSheet, showNote,
 } from './widgets.js';
 import { app } from './app.js';
 
@@ -46,6 +48,37 @@ export function renderMe(root) {
     ])));
 }
 
+// ---- Reset all data (5.10.1): type RESET to confirm; gray only, no red ----
+
+function resetSheet() {
+  const input = el('input', {
+    type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false',
+  });
+  const reset = el('button', { type: 'button', class: 'btn btn-primary btn-main', disabled: true }, raw('L164'));
+  input.addEventListener('input', () => { reset.disabled = input.value.trim().toUpperCase() !== 'RESET'; });
+  reset.addEventListener('click', async () => {
+    if (reset.disabled) return;
+    reset.disabled = true;
+    try {
+      await resetAllData();
+    } catch {
+      closeSheet({ instant: true });
+      app.home();
+      showNote(text('S317'));
+      return;
+    }
+    window.location.reload();
+  });
+  openSheet([
+    el('h2', { class: 'sheet-title' }, text('S312')),
+    el('p', {}, text('S313')),
+    el('p', { class: 'small muted' }, text('S314')),
+    input,
+    reset,
+    el('button', { type: 'button', class: 'btn btn-text-wide', onclick: () => closeSheet() }, raw('L03')),
+  ]);
+}
+
 // ---- Settings ----
 
 export function renderSettings(root) {
@@ -78,6 +111,6 @@ export function renderSettings(root) {
       lucky,
     ], { note: null }),
     lockedNote,
-    group(null, [infoRow(items[4])], { note: text('S54') }),
+    group(raw('L157'), [infoRow(items[4]), navRow(raw('L163'), null, resetSheet)], { note: text('S54') }),
     el('p', { class: 'muted small num page-end' }, text('S64', { version: APP_VERSION }))));
 }

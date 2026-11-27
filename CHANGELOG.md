@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0-b (stage-10a-fix)
+
+- Fixes to 0.8.0-a (spec version 20). Step size: a slider when there is a range, "This gap fits only one step size." when there is one size, and "Needs a gap of at least 5 ..." (Next disabled) when 5 ranks cannot be cut; a line under it explains a step. Find your start is blocked with a note when the start is too close to the goal. Ask AI: a new prompt with one item per line; answers are read with several items on one line, bold, list marks, numbering, full-width colons and other label names; with Focus, Now and Goal the talent is saved at once and only the slots page is left, otherwise the missing pages are named and opened. Today shows "Later today" when a slot is still to come today, and the weekly-win marker above the 7 cells is gone. One guitar example per page. Settings -> Data -> Reset all data (type RESET to confirm; all or nothing). Copy updated (S126, S134, S236, S244, S247, S249, H01; new S289-S297, S303, S304, S311-S317, L156, L157, L162-L164; S233 and L110 removed).
+
 ## 0.8.0-a (stage-10a)
 
 First part of spec version 19: a new practice model. Data schema v5 with a migration from v3/v4.

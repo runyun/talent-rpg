@@ -386,13 +386,9 @@ export async function copyText(s) {
   }
 }
 
-/** The example box (L86): two gray lines, one per talent (spec 5.6). */
+/** The example box (L86): one example, shown as written (spec 5.6). */
 export function exampleBox(key, textOf) {
-  const s = textOf(key);
-  // Items are separated by " · "; S126 uses " · " inside each item, so it splits at ", " instead.
-  let parts = s.split(' · ');
-  if (parts.length !== 2) parts = s.split(', ');
   return el('div', { class: 'example' },
     el('span', { class: 'example-title small' }, raw('L86')),
-    ...parts.map((p) => el('span', { class: 'muted small' }, p)));
+    el('span', { class: 'muted small' }, textOf(key)));
 }

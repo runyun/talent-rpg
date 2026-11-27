@@ -3,7 +3,7 @@
 
 import { el, mount } from '../dom.js';
 import {
-  raw, guide, how, GUIDE_KEYS, HOW_KEYS,
+  raw, text, guide, how, GUIDE_KEYS, HOW_KEYS,
 } from '../text.js';
 import { state } from '../store.js';
 import { companionsOn } from './companions.js';
@@ -64,7 +64,7 @@ export function renderGuide(root) {
   mount(root, el('section', { class: 'page fade-in' },
     el('div', { class: 'page-top' }, backButton(() => app.back())),
     el('h1', { class: 'page-title' }, raw('L82')[3]),
-    group(null, [navRow(L93[0], `${HOW_KEYS.length}`, () => app.howItWorks())]),
+    group(null, [navRow(L93[0], text('L156', { n: HOW_KEYS.length }), () => app.howItWorks())]),
     ...groups));
 }
 

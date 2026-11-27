@@ -44,6 +44,8 @@ const SINGULAR = {
   practices: 'practice',
   passes: 'pass',
   companions: 'companion',
+  checks: 'check',
+  keepsakes: 'keepsake',
 };
 
 function isMissing(value) {

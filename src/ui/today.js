@@ -13,7 +13,7 @@ import { recordAt, instanceForTalent } from '../model/schedule.js';
 import {
   todayCards, stateCard, nextSlot, practicedToday, todaysRecords,
 } from '../model/today.js';
-import { shownTarget } from '../model/practice.js';
+import { shownTarget, tooCloseToGoal } from '../model/practice.js';
 import { badgeIcon, titleNode } from './appearance.js';
 import { roleTag } from './widgets.js';
 import {
@@ -65,8 +65,6 @@ export function weekCells(week, now) {
   return el('div', { class: 'week-cells', 'aria-hidden': 'true' }, [1, 2, 3, 4, 5, 6, 7].map((d) => {
     const key = dateKey(addDays(fromDateKey(wk), d - 1));
     return el('span', { class: `week-cell${days.has(key) ? ' done' : ''}${key === today ? ' is-today' : ''}` },
-      // The weekly win threshold sits above the cell with that number (spec 5.1 item 2).
-      el('span', { class: 'week-mark' }, week.required === d ? '▾' : ''),
       el('span', { class: 'week-box' }),
       el('span', { class: 'week-letter small muted' }, weekdayLetter(d)));
   }));
@@ -130,8 +128,13 @@ function findStartCard(c, now, onInput) {
   const input = el('input', {
     type: 'text', inputmode: 'decimal', class: 'num start-input', value: ui.startInputs[t.id] || '', autocomplete: 'off',
   });
+  // S297 replaces S155 while the number is too close to the goal (spec 6.17).
+  const hint = el('p', { class: 'muted small' });
+  const paintHint = () => { hint.textContent = text(tooCloseToGoal(t, parseNumber(input.value)) ? 'S297' : 'S155'); };
+  paintHint();
   input.addEventListener('input', () => {
     ui.startInputs[t.id] = input.value;
+    paintHint();
     onInput();
   });
   return [
@@ -141,7 +144,7 @@ function findStartCard(c, now, onInput) {
     el('p', {}, text('S153', { focus: t.focus, value: fmtValue(t, shownTarget(t)) })),
     el('p', { class: 'muted small' }, text('S154')),
     el('div', { class: 'start-row' }, input, t.unit ? el('span', { class: 'muted' }, t.unit) : null),
-    el('p', { class: 'muted small' }, text('S155')),
+    hint,
   ];
 }
 
@@ -189,6 +192,14 @@ function stateCardNode(kind, now) {
       el('hr', { class: 'rule' }),
       ...nextSlotLines(now));
   }
+  if (kind === 'later') {
+    return el('div', { class: 'card' },
+      el('p', { class: 'talent-name' }, text('S303')),
+      ...todaysRecords(state, now).map((r) => el('p', { class: 'small' }, recordLine(r))),
+      el('p', { class: 'muted' }, text('S304')),
+      el('hr', { class: 'rule' }),
+      ...nextSlotLines(now));
+  }
   if (kind === 'noSlot') {
     return el('div', { class: 'card' },
       el('p', { class: 'talent-name' }, text('S163')),
@@ -222,9 +233,9 @@ function bottomFor(c, now, refreshBottom) {
         kind: 'findStart', talentId: c.talent.id, inst: c.inst, value: v,
       });
       if (ok) delete ui.startInputs[c.talent.id];
-      else refreshBottom(text('S243'));
+      else if (!tooCloseToGoal(c.talent, v)) refreshBottom(text('S243'));
     }, 'btn btn-primary btn-main');
-    primary.disabled = value === null;
+    primary.disabled = value === null || tooCloseToGoal(c.talent, value);
   } else {
     primary = btn(raw('L100'), () => openReport(c, now), 'btn btn-primary btn-main');
   }
@@ -242,7 +253,7 @@ function stateBottom(kind, now) {
       btn(raw('L107'), () => otherTalentSheet(null, now)),
       btn(raw('L102'), () => openMore(asCard, now))));
   }
-  if (kind === 'noSlot') {
+  if (kind === 'noSlot' || kind === 'later') {
     return el('div', { class: 'today-bottom' },
       btn(raw('L108'), () => {
         // Practice the talent of the next slot now (spec 6.9).

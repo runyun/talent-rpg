@@ -1595,3 +1595,21 @@ html:has(.inverse) body {
     transform: none;
   }
 }
+
+/* Ask AI saved the talent: result card on page 6 (spec 5.6.1). */
+.added-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.added-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.small-check svg {
+  width: 24px;
+  height: 24px;
+}

@@ -142,6 +142,13 @@ export function applyPractice(t, passed, at) {
   };
 }
 
+/** The measured start is too close to the goal for 5 ranks (gap < 5, or < 0.5 with decimals; 6.17). */
+export function tooCloseToGoal(t, value) {
+  if (value === null || value === undefined || t.goal === null || t.goal === undefined || t.findStart === 'awaken') return false;
+  const gap = Math.abs(t.goal - roundValue(t.wholeNumbers, value));
+  return gap > EPS && gap < (t.wholeNumbers ? 1 : 0.1) * CONFIG.stepSlider.minSteps - EPS;
+}
+
 /**
  * Set my start (spec 6.17). value: the number typed in.
  * Returns { talent, n } or { error: 'S243' } when the start equals or passes the goal.
@@ -160,6 +167,7 @@ export function applyFindStart(t, value) {
   }
   const estDir = t.goal >= (t.estimate === null || t.estimate === undefined ? v : t.estimate) ? 1 : -1;
   if (v === t.goal || estDir * (t.goal - v) < 0) return { error: 'S243' };
+  if (tooCloseToGoal(t, v)) return { error: 'S297' };
   let { step } = t;
   let n = totalSteps(v, t.goal, step);
   if (n < CONFIG.stepSlider.minSteps) {

@@ -66,13 +66,21 @@ export function nextSlot(state, now) {
   return upcomingInstances(state, now)[0] || null;
 }
 
+/** A slot instance later today that has not started (and whose window is not open yet). */
+export function laterToday(state, now) {
+  const today = dateKey(now);
+  return weekStats(weekKey(now), state, now).instances
+    .some((i) => !i.done && dateKey(i.start) === today && instanceStatus(i, now) === 'upcoming');
+}
+
 /**
- * The state card when there is no task card (5.1.3):
- * 'allDone' | 'noSlot' | 'empty' (no talents) | 'allDormant'.
+ * The state card when there is no task card (5.1.3), checked in this order:
+ * 'empty' (no talents) | 'allDormant' | 'later' | 'allDone' | 'noSlot'.
  */
 export function stateCard(state, now) {
   if (!state.talents.length) return 'empty';
   if (state.talents.every((t) => t.role === 'dormant')) return 'allDormant';
+  if (laterToday(state, now)) return 'later';
   return practicedToday(state, now) ? 'allDone' : 'noSlot';
 }
 

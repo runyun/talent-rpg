@@ -28,8 +28,8 @@ export function renderTalentsTab(root) {
     class: 'row row-tap',
     onclick: i.done || i.nextWeekOnly ? undefined : () => rescheduleSheet(i, rerender),
   },
-  el('span', { class: 'row-label num' }, `${weekdayLabel(isoWeekday(i.start))} ${hm(i.start)}  ${i.talent.name}`),
-  i.nextWeekOnly ? el('span', { class: 'row-value muted small' }, raw('L110')) : el('span', { class: 'row-value' }, i.done ? '✓' : '')));
+  el('span', { class: `row-label num${i.nextWeekOnly ? ' muted' : ''}` }, `${weekdayLabel(isoWeekday(i.start))} ${hm(i.start)}  ${i.talent.name}`),
+  el('span', { class: 'row-value' }, i.done ? '✓' : '')));
 
   const running = state.talents
     .filter((t) => t.role !== 'dormant')
