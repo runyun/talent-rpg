@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0 (stage-10d)
+
+- 20 black-and-white themes (Mono free, others 30 Mana) with theme-only decorations; every theme shows the same information, keeps the main button at the bottom and today's target as the largest text. Off-gray colors from the copy sheet are normalized to pure grays. 15 finish effects for the Passed screen (Check free, others 20 Mana), previewed in Appearance with Play. Pages slide in, hints drop in once; Reduce Motion fades only. Inverted screens follow the theme colors.
+
 ## 0.8.0-d (stage-10c)
 
 - Data schema v6 with a migration from v5 (all or nothing): badges are retired and each bought badge returns 30 Mana (shown once in Appearance); the Check finish effect and the free room items are owned and in use. Room: a line drawing of your room (window by day or night, a shelf with the newest 6 keepsakes) with furniture to buy for 15-25 Mana; Showcase to place keepsakes for 20 Mana and an All keepsakes page. Companions join in batches (10 at first, 5 more with each weekly win; existing worlds count 10 + 5 per weekly win so far), fast growers can reach Rank S, and each has a 3-chapter story (10 Mana a chapter, after 0 / 4 / 10 weeks together) and a 14-day Recent list. World has Feed | Vault. Me: Room card, History (month calendar, last week), Logbooks (first one free, then 15 Mana; "+ Log entry" after practice when linked). Settings: the weekly Check, Validation data and Copy data for review. Deleting a talent also deletes its keepsakes and unlinks its logbooks. Guide: Companion stories, Room and Showcase.

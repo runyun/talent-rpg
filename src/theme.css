@@ -1,16 +1,16 @@
 /* Visual base (spec section 3). Stage 10A: every screen uses the default theme, Mono:
-   pure black background, white text, secondary gray #8a8a8a, SF Pro, cards #1c1c1e with a 1px
-   #3a3a3c frame, 10px corners, inverted solid main buttons, solid progress.
+   pure black background, white text, secondary gray #8a8a8a, SF Pro, cards #1c1c1c with a 1px
+   #3a3a3a frame, 10px corners, inverted solid main buttons, solid progress.
    The other 19 themes (black, white and gray only) come in stage 10D. */
 
 :root,
 [data-theme] {
   --bg: #000000;
-  --card: #1c1c1e;
+  --card: #1c1c1c;
   --fg: #ffffff;
-  --muted: #8a8a8a;           /* AA on #000 and #1c1c1e */
+  --muted: #8a8a8a;           /* AA on #000 and #1c1c1c */
   --muted-inverse: #595959;   /* secondary text on the inverted screen (white) */
-  --line: #3a3a3c;
+  --line: #3a3a3a;
   --line-strong: #ffffff;
   --radius: 10px;
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
@@ -860,7 +860,7 @@ textarea {
   height: 31px;
   margin: 6px 0;
   border-radius: 999px;
-  background: #3a3a3c;
+  background: #3a3a3a;
   cursor: pointer;
   transition: background 150ms;
 }
@@ -1007,12 +1007,12 @@ textarea {
 }
 
 .inverse {
-  color: #000000;
+  color: var(--bg);
 }
 
 html:has(.inverse),
 html:has(.inverse) body {
-  background: #ffffff;
+  background: var(--fg);
 }
 
 .inverse .muted {
@@ -1020,15 +1020,15 @@ html:has(.inverse) body {
 }
 
 .inverse .bar {
-  background: #d1d1d1;
+  background: var(--muted-inverse);
 }
 
 .inverse .bar-fill {
-  background: #000000;
+  background: var(--bg);
 }
 
 .inverse .congrats-item {
-  border-color: #c7c7c7;
+  border-color: var(--muted-inverse);
 }
 
 .check-icon svg {
@@ -1086,7 +1086,7 @@ html:has(.inverse) body {
   display: block;
   height: 6px;
   border-radius: 3px;
-  background: #3a3a3c;
+  background: #3a3a3a;
   overflow: hidden;
 }
 
@@ -1775,24 +1775,24 @@ html:has(.inverse) body {
 }
 
 .inverse .ladder-step {
-  color: #595959;
+  color: var(--muted-inverse);
 }
 
 .inverse .ladder-step.on {
-  color: #000000;
+  color: var(--bg);
 }
 
 .inverse .ladder-dot {
-  border-color: #595959;
+  border-color: var(--muted-inverse);
 }
 
 .inverse .ladder-step.on .ladder-dot {
-  background: #000000;
-  border-color: #000000;
+  background: var(--bg);
+  border-color: var(--bg);
 }
 
 .inverse .ladder-step.now .ladder-dot {
-  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3.5px #000000;
+  box-shadow: 0 0 0 2px var(--fg), 0 0 0 3.5px var(--bg);
 }
 
 .ladder-step.fill-in .ladder-dot {
@@ -1829,14 +1829,14 @@ html:has(.inverse) body {
 
 /* Buttons on the inverted screens (white background). */
 .inverse .btn {
-  border-color: #000000;
-  color: #000000;
+  border-color: var(--bg);
+  color: var(--bg);
   background: transparent;
 }
 
 .inverse .btn-primary {
-  background: #000000;
-  color: #ffffff;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 /* ---- Stage 10C ---- */

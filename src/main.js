@@ -263,6 +263,8 @@ function openPage(r, { push = true } = {}) {
   }
   const scroll = show(r, currentTab);
   PAGES[r.name](r);
+  // A new page slides in from the right (spec 3.3); a refresh of the same page does not.
+  if (push && root.firstElementChild) root.firstElementChild.classList.add('push-in');
   scroll();
 }
 
@@ -378,7 +380,7 @@ async function boot() {
   requestPersistence();
   await touchOpen(db);
   await loadState(db);
-  applyTheme();
+  applyTheme(state.player.equipped && state.player.equipped.theme);
 
   // Validation metric (spec 4.12): one record per open.
   state.openedAt = Date.now();

@@ -12,6 +12,7 @@ import {
 import { finishRecord, levelProgress } from '../model/record.js';
 import { instanceForTalent } from '../model/schedule.js';
 import { congratsBlock, companionsOn } from './companions.js';
+import { effectSvg } from './effects.js';
 import { showNote, hideNote } from './widgets.js';
 import { clearExtra } from './today.js';
 import { app } from './app.js';
@@ -98,7 +99,8 @@ export function renderFinish(root, { view, snapshot, talent }) {
   const parts = [];
 
   if (view.kind === 'practice') {
-    if (passed) parts.push(el('span', { class: 'check-icon' }, svg(CHECK_ICON)));
+    // The finish effect in use (spec 3.3; default Check) on the Passed screen only.
+    if (passed) parts.push(el('span', { class: 'check-icon' }, effectSvg((state.player.equipped && state.player.equipped.finishEffect) || 'check')));
     parts.push(el('p', { class: 'finish-big' }, raw(passed ? 'L111' : 'L118')));
     parts.push(el('p', { class: 'finish-target num' }, view.changed
       ? text('S170', { old: fmtValue(t, view.old), new: fmtValue(t, view.new) })

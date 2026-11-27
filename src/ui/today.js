@@ -1,12 +1,12 @@
 // Today (spec 5.1): title row, this week's 7 cells, swipeable task cards, bottom buttons.
 // One screen high, never scrolls, nothing about companions, shop, ranking or the vault.
 
-import { el, mount } from '../dom.js';
+import { el, mount, svg } from '../dom.js';
 import { text, raw } from '../text.js';
 import {
   addDays, dateKey, dayLabel, fromDateKey, hm, weekKey, weekdayLetter,
 } from '../time.js';
-import { fmtValue, parseNumber } from '../format.js';
+import { fmtValue, fmtNumber, parseNumber } from '../format.js';
 import { state } from '../store.js';
 import { levelFromExp } from '../model/record.js';
 import { recordAt, instanceForTalent } from '../model/schedule.js';
@@ -55,7 +55,7 @@ export function clearExtra(talentId) {
 function titleRow() {
   const p = state.player;
   return el('header', { class: 'today-top' },
-    el('h1', { class: 'big-title' }, raw('L81')[0]),
+    el('h1', { class: 'big-title' }, deco('system-title', raw('L152')), el('span', { class: 'title-word' }, raw('L81')[0])),
     el('span', { class: 'today-lv muted' },
       titleNode(p),
       el('span', { class: 'num' }, text('S276', { lv: levelFromExp(p.totalExp) }))));
@@ -70,7 +70,7 @@ export function weekCells(week, now) {
     const key = dateKey(addDays(fromDateKey(wk), d - 1));
     return el('span', { class: `week-cell${days.has(key) ? ' done' : ''}${key === today ? ' is-today' : ''}` },
       el('span', { class: 'week-box' }),
-      el('span', { class: 'week-letter small muted' }, weekdayLetter(d)));
+      el('span', { class: 'week-letter small muted' }, weekdayLetter(d), el('span', { class: 'deco deco-date num' }, String(fromDateKey(key).getDate()))));
   }));
 }
 
@@ -104,13 +104,18 @@ function needsWorkPart(talent) {
 }
 
 /** A hint box: outline, optional second line, and a chevron when it can be tapped. */
+const seenHints = new Set(); // hints already shown in this session: the drop-in plays once
+
 function hintBox(first, second, onTap) {
+  const fresh = !seenHints.has(first);
+  seenHints.add(first);
+  const extra = fresh ? ' hint-new' : '';
   const inner = [el('span', { class: 'hint-lines' }, el('span', {}, first), second ? el('span', { class: 'muted small' }, second) : null)];
   if (onTap) {
     inner.push(el('span', { class: 'chev muted', 'aria-hidden': 'true' }, '›'));
-    return el('button', { type: 'button', class: 'hint hint-tap', onclick: onTap }, inner);
+    return el('button', { type: 'button', class: `hint hint-tap${extra}`, onclick: onTap }, inner);
   }
-  return el('div', { class: 'hint' }, inner);
+  return el('div', { class: `hint${extra}` }, inner);
 }
 
 /** Card hint (5.1.1 item 2): challenge > plateau > return; at most one. */
@@ -149,23 +154,70 @@ function plateauSheet(t) {
   ]);
 }
 
+/**
+ * Theme decorations (spec 3.2): hidden in Mono, shown by themes.css. They only use the card's own
+ * information and the theme words L150-L155, so every theme shows the same facts.
+ */
+function deco(kind, ...children) {
+  return el('span', { class: `deco deco-${kind}`, 'aria-hidden': 'true' }, ...children);
+}
+
+/** The big number: digits (Scoreboard tiles) and the unit. */
+function bigNumber(t, v) {
+  const n = fmtNumber(v, t.wholeNumbers);
+  if (n === null) return el('span', { class: 'target-big num' });
+  return el('span', { class: 'target-big num' },
+    el('span', { class: 'target-num' }, [...n].map((ch) => el('span', { class: 'dg' }, ch))),
+    t.unit ? el('span', { class: 'target-unit' }, ` ${t.unit}`) : null);
+}
+
+/** Dial: this week's 7 days as a ring (done days filled, today thin). */
+function weekRing(week) {
+  const parts = [];
+  for (let i = 0; i < 7; i += 1) {
+    const a0 = (i / 7) * 2 * Math.PI - Math.PI / 2 + 0.06;
+    const a1 = ((i + 1) / 7) * 2 * Math.PI - Math.PI / 2 - 0.06;
+    const p = (a) => `${(50 + 44 * Math.cos(a)).toFixed(2)} ${(50 + 44 * Math.sin(a)).toFixed(2)}`;
+    const cls = week.daysDone && week.daysDone[i] ? 'seg-done' : (week.todayIndex === i ? 'seg-today' : 'seg-off');
+    parts.push(`<path class="${cls}" d="M${p(a0)} A44 44 0 0 1 ${p(a1)}"/>`);
+  }
+  const node = svg(parts.join(''), '0 0 100 100');
+  node.classList.add('ring');
+  return deco('ring', node);
+}
+
 function taskCard(c, week, now) {
   const t = c.talent;
-  const parts = [nameRow(t, now), ...hintFor(t, now)];
+  const L151 = raw('L151');
+  const L155 = raw('L155');
+  const role = raw({ main: 'L45', maintain: 'L46', dormant: 'L47' }[t.role]);
+  const parts = [
+    deco('titlebar', el('span', { class: 'tb-box' }), el('span', { class: 'tb-name' }, t.name)),
+    deco('binding', [1, 2, 3, 4].map(() => el('span', { class: 'hole' }))),
+    deco('sender', `${raw('L152')} · ${t.name} · ${role} · ${rankText(t)}`),
+    deco('quest', raw('L150')),
+    deco('stamp', text('L48', { rank: t.rank })),
+    deco('emblem', t.rank),
+    el('div', { class: 'card-head' }, deco('col', L151[0]), nameRow(t, now)),
+    ...hintFor(t, now),
+  ];
   if (c.inst && c.mode === 'past') {
     // Neutral note with the original slot time: no "missed", no red (spec 5.1.1 item 3).
     parts.push(el('p', { class: 'muted small' }, text('S72', { day: dayLabel(c.inst.start, now), time: hm(c.inst.start) })));
   }
   parts.push(el('div', { class: 'card-target' },
-    el('span', { class: 'part-label small muted' }, raw('L97')),
-    el('span', { class: 'target-big num' }, fmtValue(t, t.target)),
-    el('span', { class: 'card-focus' }, t.focus),
-    t.lastPass ? el('span', { class: 'muted small' }, text('S140', { value: fmtValue(t, t.lastPass.value), day: dayLabel(new Date(t.lastPass.at), now) })) : null));
+    deco('col', L151[2]),
+    weekRing(week),
+    el('span', { class: 'part-label small muted' }, el('span', { class: 'label-word' }, raw('L97')), deco('short', L155[0])),
+    bigNumber(t, t.target),
+    el('span', { class: 'card-focus' }, deco('col', L151[3]), t.focus),
+    t.lastPass ? el('span', { class: 'muted small last-pass' }, deco('short', L155[1]), text('S140', { value: fmtValue(t, t.lastPass.value), day: dayLabel(new Date(t.lastPass.at), now) })) : null));
   const checks = (t.checks || []).filter(Boolean);
   const nw = needsWorkPart(t);
   if (checks.length || nw) parts.push(el('hr', { class: 'rule' }));
   if (checks.length) {
-    parts.push(el('div', { class: 'card-part' },
+    parts.push(el('div', { class: 'card-part card-checks' },
+      deco('col', L151[4]),
       el('span', { class: 'part-label small muted' }, raw('L98')),
       ...checks.map((s) => el('span', { class: 'check-line' }, s))));
   }
@@ -294,7 +346,7 @@ function bottomFor(c, now, refreshBottom) {
       btn(raw('L101'), () => openQuick(c, now), 'btn btn-primary btn-main'),
       el('div', { class: 'btn-pair' }, btn(raw('L100'), () => openReport(c, now)), more));
   } else {
-    primary = btn(raw('L100'), () => openReport(c, now), 'btn btn-primary btn-main');
+    primary = btn([deco('accept', `${raw('L153')} · `), raw('L100')], () => openReport(c, now), 'btn btn-primary btn-main');
   }
   return el('div', { class: 'today-bottom' }, primary, el('div', { class: 'btn-pair' }, quick, more));
 }
@@ -404,6 +456,10 @@ export function renderToday(root, { refresh = false } = {}) {
   sameSlotsNotice(now);
   if (ui.extraId && !state.talents.some((t) => t.id === ui.extraId && t.role !== 'dormant')) ui.extraId = null;
   const { cards, week } = todayCards(state, now, ui.extraId);
+  const wkStart = weekKey(now);
+  const doneDays = new Set(state.sessions.filter((r) => weekKey(new Date(recordAt(r))) === wkStart).map((r) => dateKey(new Date(recordAt(r)))));
+  week.daysDone = [0, 1, 2, 3, 4, 5, 6].map((i) => doneDays.has(dateKey(addDays(fromDateKey(wkStart), i))));
+  week.todayIndex = [0, 1, 2, 3, 4, 5, 6].find((i) => dateKey(addDays(fromDateKey(wkStart), i)) === dateKey(now));
 
   const section = el('section', { class: `today${refresh ? '' : ' fade-in'}` }, titleRow(),
     el('div', { class: 'week' }, weekHeader(week), weekCells(week, now)));
@@ -430,18 +486,26 @@ export function renderToday(root, { refresh = false } = {}) {
     const parts = c.kind === 'setup' ? setupCard(c, now)
       : c.kind === 'findStart' ? findStartCard(c, now, () => { if (cards[at] === c) replaceBottom(); })
         : taskCard(c, week, now);
-    return el('div', { class: `card${c.talent.role === 'main' ? ' card-main' : ''}` }, parts);
+    const i = cards.indexOf(c);
+    return el('div', {
+      class: `card${c.talent.role === 'main' ? ' card-main' : ''}${i < cards.length - 1 ? ' has-next' : ''}`,
+    }, cards.length > 1 ? deco('pos', text('L154', { i: i + 1, n: cards.length })) : null, parts);
   });
   const track = swipeTrack(nodes, at, (i) => {
     at = i;
     ui.currentId = cards[at].talent.id;
     const f = dotsAndHint(cards, at);
+    if (tabs) [...tabs.children].forEach((b, k) => b.classList.toggle('on', k === at));
     foot.replaceWith(f);
     foot = f;
     replaceBottom();
   });
   replaceBottom();
-  section.append(track.node, foot, bottom);
+  // Folder: tabs with every card's talent; tapping one shows it (spec 3.2 rule 7).
+  const tabs = cards.length > 1 ? el('div', { class: 'deco deco-tabs' }, cards.map((c, i) => el('button', {
+    type: 'button', class: `ftab${i === at ? ' on' : ''}`, onclick: () => track.go(i),
+  }, c.talent.name))) : null;
+  section.append(...[tabs, track.node, foot, bottom].filter(Boolean));
   paint(root, section, refresh);
 }
 

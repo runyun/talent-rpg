@@ -1,7 +1,6 @@
-// Appearance (spec 5.13, 7.6): title frames and legendary titles (badges retired in data v6).
-// Every item is shown as it really looks; tap one for a bigger preview with Buy / Use.
-// Themes: stage 10A draws everything with Mono; the 20 themes and their previews come in 10D
-// (owned themes are kept in the data).
+// Appearance (spec 5.13, 7.6): themes, finish effects, title frames and legendary titles
+// (badges were retired in data v6). Every item is shown as it really looks; tap one for a bigger
+// preview with Buy / Use.
 
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
@@ -10,15 +9,17 @@ import { CONFIG } from '../config.js';
 import { state, savePlayer } from '../store.js';
 import { FRAME_CODES } from '../model/vault.js';
 import { levelFromExp } from '../model/record.js';
-import { DEFAULT_THEME } from '../themes.js';
+import { DEFAULT_THEME, THEME_IDS } from '../themes.js';
+import { FINISH_EFFECTS } from '../data/room.js';
+import { effectSvg } from './effects.js';
 import {
   backButton, openSheet, closeSheet,
 } from './widgets.js';
 import { app } from './app.js';
 
-/** Stage 10A: every screen uses Mono (the equipped theme is kept for stage 10D). */
-export function applyTheme() {
-  document.documentElement.dataset.theme = DEFAULT_THEME;
+/** Apply a theme to the whole app right away. */
+export function applyTheme(code) {
+  document.documentElement.dataset.theme = THEME_IDS.includes(code) ? code : DEFAULT_THEME;
 }
 
 function frameNode(frame, label) {
@@ -47,11 +48,45 @@ async function buy(kind, code, price) {
 async function use(slot, code) {
   const p = state.player;
   await savePlayer({ ...p, equipped: { ...p.equipped, [slot]: code } });
+  if (slot === 'theme') applyTheme(code);
   closeSheet();
   app.refresh();
 }
 
 // ---- Previews ----
+
+/** A small Today card in a theme: frame, role tag, Today's target with a big number, a bit of the week, the button. */
+function themePreview(code, big = false) {
+  const cells = [0, 1, 2, 3].map((i) => el('span', { class: `week-cell${i < 2 ? ' done' : ''}${i === 2 ? ' is-today' : ''}` },
+    el('span', { class: 'week-box' })));
+  return el('span', { class: `theme-preview${big ? ' big' : ''}`, 'data-theme': code },
+    el('span', { class: 'week-cells' }, cells),
+    el('span', { class: 'card' },
+      el('span', { class: 'card-name' }, el('span', { class: 'tag tag-solid' }, raw('L45'))),
+      el('span', { class: 'card-target' },
+        el('span', { class: 'part-label small muted' }, raw('L97')),
+        el('span', { class: 'target-big num' }, el('span', { class: 'target-num' }, [...'100'].map((d) => el('span', { class: 'dg' }, d)))))),
+    el('span', { class: 'btn btn-primary btn-main' }, raw('L100')));
+}
+
+function effectPreview(code) {
+  return el('span', { class: 'fx-tile' }, effectSvg(code, { still: true }));
+}
+
+/** Big preview of a finish effect: a small Passed screen; plays once, Play plays again. */
+function effectDemo(code) {
+  const holder = el('span', {}, effectSvg(code));
+  const play = el('button', {
+    type: 'button',
+    class: 'btn',
+    onclick: () => holder.replaceChildren(effectSvg(code)),
+  }, raw('L160'));
+  return el('span', { class: 'stack' },
+    el('span', { class: 'fx-demo' }, holder,
+      el('span', { class: 'finish-big' }, raw('L111')),
+      el('span', { class: 'num' }, text('S170', { old: '96', new: '100 BPM' }))),
+    play);
+}
 
 /** Your current title (or Lv) in a frame, at real size. */
 function framePreview(code) {
@@ -120,6 +155,12 @@ export function renderAppearance(root) {
   const prices = CONFIG.prices;
   const titles = owned('legendaryTitles');
 
+  const themes = THEME_IDS.map((code, i) => ({
+    kind: 'themes', slot: 'theme', code, name: ITEMS.themes[i], price: i === 0 ? 0 : prices.theme, preview: (big) => themePreview(code, big),
+  }));
+  const effects = FINISH_EFFECTS.map((f) => ({
+    kind: 'finishEffects', slot: 'finishEffect', code: f.code, name: f.name, price: f.price, preview: (big) => (big ? effectDemo(f.code) : effectPreview(f.code)),
+  }));
   const frames = FRAME_CODES.map((code, i) => ({
     kind: 'titleFrames', slot: 'titleFrame', code, name: ITEMS.titleFrames[i], price: code === 'none' ? 0 : prices.titleFrame, preview: () => framePreview(code),
   }));
@@ -132,6 +173,8 @@ export function renderAppearance(root) {
     el('h1', { class: 'page-title' }, raw('L82')[2]),
     el('p', { class: 'muted' }, text('S267', { n: state.player.mana || 0 })),
     refundLine(),
+    itemGroup(L68[0], themes, 2),
+    itemGroup(L68[1], effects, 3),
     itemGroup(L68[2], frames, 2),
     legendary.length ? itemGroup(L68[3], legendary, 2) : null));
 }

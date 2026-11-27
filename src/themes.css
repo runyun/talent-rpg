@@ -1,0 +1,435 @@
+/* The 20 themes (spec 3.2, copy sheet part 9 "Themes"). Black, white and gray only: no color,
+   glow, gradient or texture. Every theme shows the same information and copy as Mono; it only
+   changes looks, case, label symbols and decorations (.deco elements, hidden by default).
+   Fonts: SF Pro, SF Pro Rounded, New York, SF Mono (Menlo where missing). Numbers are tabular.
+   A [data-theme] attribute works on <html> and on any element (Appearance previews). */
+
+.deco {
+  display: none;
+}
+
+[data-theme] {
+  --font-round: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  --font-serif: ui-serif, "New York", Georgia, serif;
+  --btn-radius: var(--radius);
+  --check-mark: "";
+}
+
+[data-theme] .check-line::before {
+  content: var(--check-mark);
+}
+
+[data-theme] .btn-primary {
+  border-radius: var(--btn-radius);
+}
+
+/* Light themes: black text, #595959 secondary gray (AA on their card colors). */
+[data-theme="polaroid"], [data-theme="poster"], [data-theme="folder"], [data-theme="label"],
+[data-theme="receipt"], [data-theme="ticket"], [data-theme="split"], [data-theme="swiss"],
+[data-theme="stamp"], [data-theme="classic"], [data-theme="tear-off"] {
+  --fg: #000000;
+  --muted: #595959;
+  --muted-inverse: #8a8a8a;
+  --line: #b0b0b0;
+  --card: #ffffff;
+}
+
+/* 2 Polaroid: a slightly tilted instant photo; dark photo area on top. */
+[data-theme="polaroid"] { --bg: #e3e3e3; --radius: 12px; --check-mark: "\2713  "; }
+[data-theme="polaroid"] .card { transform: rotate(-1.2deg); padding: 12px 12px 18px; border: none; }
+[data-theme="polaroid"] .card-head,
+[data-theme="polaroid"] .card-target { background: #141414; color: #ffffff; padding: 10px 12px; margin: 0 -2px; }
+[data-theme="polaroid"] .card-head { border-radius: 4px 4px 0 0; }
+[data-theme="polaroid"] .card-target { margin-top: -6px; border-radius: 0 0 4px 4px; }
+[data-theme="polaroid"] .card-head .muted,
+[data-theme="polaroid"] .card-target .muted { color: #8a8a8a; }
+[data-theme="polaroid"] .card-head .tag-solid { background: #ffffff; color: #000000; border-color: #ffffff; }
+[data-theme="polaroid"] .target-big { font-weight: 200; font-size: 3.6em; }
+[data-theme="polaroid"] .card-checks { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; }
+
+/* 3 Poster: the card is a solid black block; heavy upper-case type. */
+[data-theme="poster"] { --bg: #f2f2f2; --radius: 0; --btn-radius: 0; --check-mark: "\2014  "; }
+[data-theme="poster"] .big-title,
+[data-theme="poster"] .card-name,
+[data-theme="poster"] .btn-main { text-transform: uppercase; font-weight: 900; }
+[data-theme="poster"] .card { background: #000000; color: #ffffff; border: none; }
+[data-theme="poster"] .card .muted { color: #8a8a8a; }
+[data-theme="poster"] .card .tag-solid { background: #ffffff; color: #000000; border-color: #ffffff; }
+[data-theme="poster"] .card .line-tap { border-color: #555555; }
+[data-theme="poster"] .target-big { font-weight: 900; letter-spacing: -0.03em; font-size: 3.3em; }
+[data-theme="poster"] .part-label { text-transform: uppercase; }
+[data-theme="poster"] .week-box { height: 24px; border-radius: 0; }
+
+/* 4 Message: chat bubbles from the system; the main button is a reply bubble on the right. */
+[data-theme="message"] { --bg: #000000; --card: #2c2c2c; --radius: 18px; }
+[data-theme="message"] .card { border: none; border-bottom-left-radius: 4px; }
+[data-theme="message"] .deco-sender { display: block; font-size: 0.7em; color: var(--muted); text-transform: uppercase; }
+[data-theme="message"] .today-bottom .btn-main { width: 66%; margin-left: auto; border-radius: 18px 18px 4px 18px; }
+[data-theme="message"] .today-bottom .btn-pair { justify-content: flex-end; }
+[data-theme="message"] .today-bottom .btn-pair .btn { flex: 0 0 auto; width: auto; min-width: 92px; border-radius: 999px; }
+
+/* 5 Folder: a folder per talent with tabs for every card; table-like fields. */
+[data-theme="folder"] { --bg: #f4f4f4; --radius: 10px; }
+[data-theme="folder"] .big-title { font-family: var(--font-serif); }
+[data-theme="folder"] .card { border: 1px solid #000000; border-top-left-radius: 0; }
+[data-theme="folder"] .deco-tabs { display: flex; gap: 4px; margin-bottom: -12px; overflow: hidden; }
+[data-theme="folder"] .ftab { min-height: 44px; padding: 6px 12px; border: 1px solid #000000; border-bottom: none; border-radius: 8px 8px 0 0; background: #dcdcdc; color: #000000; }
+[data-theme="folder"] .ftab.on { background: #ffffff; font-weight: 700; }
+[data-theme="folder"] .card-foot .muted { display: none; }
+[data-theme="folder"] .deco-col { display: block; font-size: 0.7em; text-transform: uppercase; color: var(--muted); }
+[data-theme="folder"] .card-head > .deco-col { display: none; }
+[data-theme="folder"] .target-big { font-family: var(--font-serif); font-size: 2.6em; }
+[data-theme="folder"] .card-target > .part-label,
+[data-theme="folder"] .card-checks > .part-label { display: none; }
+
+/* 6 Terminal: command line; lower case, mono, a white line on the left. */
+[data-theme="terminal"] { --font: var(--font-mono); --radius: 0; --btn-radius: 0; --check-mark: "[ ] "; }
+[data-theme="terminal"] body,
+[data-theme="terminal"] .today,
+[data-theme="terminal"] .card { font-family: var(--font-mono); }
+[data-theme="terminal"] .today { text-transform: lowercase; }
+[data-theme="terminal"] .title-word::before { content: "> "; }
+[data-theme="terminal"] .card { background: transparent; border: none; border-left: 2px solid #ffffff; border-radius: 0; }
+[data-theme="terminal"] .card-target .label-word { display: none; }
+[data-theme="terminal"] .card-target .deco-short { display: inline; }
+[data-theme="terminal"] .card-target .deco-short::after { content: ":"; }
+[data-theme="terminal"] .btn-main::before { content: "> "; }
+[data-theme="terminal"] .btn-main::after { content: "_"; }
+[data-theme="terminal"] .week-box { border-radius: 0; }
+
+/* 7 Label: label-maker tape for the title and small labels. */
+[data-theme="label"] { --bg: #e5e5e5; --radius: 4px; }
+[data-theme="label"] .big-title .title-word,
+[data-theme="label"] .part-label,
+[data-theme="label"] .tag { background: #000000; color: #ffffff; padding: 1px 6px; border-radius: 2px; font-family: var(--font-mono); text-transform: uppercase; display: inline-block; width: fit-content; border-color: #000000; }
+[data-theme="label"] .part-label { font-size: 0.7em; }
+
+/* 8 System: a game system window with corner marks. */
+[data-theme="system"] { --bg: #000000; --card: #0d0d0d; --radius: 0; --btn-radius: 0; --check-mark: "\25C7  "; }
+[data-theme="system"] .deco-system-title { display: block; font-family: var(--font-mono); font-size: 0.45em; letter-spacing: 0.2em; color: var(--muted); }
+[data-theme="system"] .card { border: none; position: relative; background-image: none; box-shadow: none; }
+[data-theme="system"] .card::before,
+[data-theme="system"] .card::after { content: ""; position: absolute; width: 16px; height: 16px; border: 0 solid #ffffff; }
+[data-theme="system"] .card::before { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+[data-theme="system"] .card::after { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+[data-theme="system"] .deco-quest { display: block; text-align: center; font-family: var(--font-mono); font-size: 0.75em; letter-spacing: 0.2em; }
+[data-theme="system"] .deco-quest::before { content: "\2014  "; }
+[data-theme="system"] .deco-quest::after { content: "  \2014"; }
+[data-theme="system"] .card-target { align-items: center; text-align: center; }
+[data-theme="system"] .target-big,
+[data-theme="system"] .part-label { font-family: var(--font-mono); }
+[data-theme="system"] .deco-accept { display: inline; }
+[data-theme="system"] .btn-main { text-transform: uppercase; }
+
+/* 9 Receipt: a white receipt strip on a dark gray table; dotted leaders. */
+[data-theme="receipt"] { --bg: #1a1a1a; --radius: 0; --btn-radius: 0; --font: var(--font-mono); }
+[data-theme="receipt"] .today-top,
+[data-theme="receipt"] .week-head { color: #ffffff; }
+[data-theme="receipt"] .today-top .muted,
+[data-theme="receipt"] .week-letter,
+[data-theme="receipt"] .card-foot .muted { color: #8a8a8a; }
+[data-theme="receipt"] .week-box { border-color: #8a8a8a; }
+[data-theme="receipt"] .week-cell.done .week-box { background: #ffffff; }
+[data-theme="receipt"] .week-cell.is-today .week-box { border-color: #ffffff; }
+[data-theme="receipt"] .card { font-family: var(--font-mono); border: none; border-bottom: 3px dotted #1a1a1a; }
+[data-theme="receipt"] .card-head { border-top: 1px solid #000000; border-bottom: 1px solid #000000; padding: 4px 0; }
+[data-theme="receipt"] .card-target .label-word { display: none; }
+[data-theme="receipt"] .card-target .deco-short { display: inline; text-transform: uppercase; }
+[data-theme="receipt"] .check-line { display: flex; gap: 6px; }
+[data-theme="receipt"] .check-line::after { content: "\25A1"; margin-left: auto; }
+[data-theme="receipt"] .btn-main { text-transform: uppercase; background: #ffffff; color: #000000; border-color: #ffffff; }
+[data-theme="receipt"] .dot.on { background: #ffffff; border-color: #ffffff; }
+
+/* 10 Outline: no card fill; the big number is drawn as an outline. */
+[data-theme="outline"] { --card: #000000; --radius: 8px; --check-mark: "\25CB  "; }
+[data-theme="outline"] .card { border: 1px solid #ffffff; }
+[data-theme="outline"] .target-num { color: transparent; -webkit-text-stroke: 1.5px #ffffff; font-weight: 900; font-size: 1.15em; }
+
+/* 11 Ticket: notches on both sides and a dotted tear line. */
+[data-theme="ticket"] { --bg: #e5e5e5; --radius: 10px; --check-mark: "\2713  "; }
+[data-theme="ticket"] .card { position: relative; border: none; }
+[data-theme="ticket"] .card > .rule { border-top: 2px dotted #8a8a8a; margin: 10px -14px; width: auto; position: relative; }
+[data-theme="ticket"] .card > .rule::before,
+[data-theme="ticket"] .card > .rule::after { content: ""; position: absolute; top: -10px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg); }
+[data-theme="ticket"] .card > .rule::before { left: -9px; }
+[data-theme="ticket"] .card > .rule::after { right: -9px; }
+[data-theme="ticket"] .target-big { font-family: var(--font-serif); }
+
+/* 12 Split: left 42% black with the target, right white with the rest. */
+[data-theme="split"] { --bg: #f2f2f2; --radius: 0; --btn-radius: 0; }
+[data-theme="split"] .card { display: grid; grid-template-columns: 42% 1fr; column-gap: 12px; border: 1px solid #000000; padding: 0 12px 0 0; }
+[data-theme="split"] .card > * { grid-column: 2; }
+[data-theme="split"] .card > .card-target { grid-column: 1; grid-row: 1 / span 8; background: #000000; color: #ffffff; padding: 12px; justify-content: center; margin: 0; }
+[data-theme="split"] .card > .card-target .muted { color: #8a8a8a; }
+[data-theme="split"] .card > .card-head { padding-top: 12px; }
+[data-theme="split"] .card-target .label-word { display: none; }
+[data-theme="split"] .card-target .deco-short { display: inline; text-transform: uppercase; }
+[data-theme="split"] .target-big { font-size: 2.4em; }
+
+/* 13 Dial: this week as a 7-part ring around the big number. */
+[data-theme="dial"] { --bg: #0d0d0d; --card: #1c1c1c; --radius: 20px; --btn-radius: 999px; --font: var(--font-round); }
+[data-theme="dial"] body,
+[data-theme="dial"] .today { font-family: var(--font-round); }
+[data-theme="dial"] .card-target { position: relative; align-items: center; text-align: center; padding: 26px 0; }
+[data-theme="dial"] .deco-ring { display: block; position: absolute; left: 50%; top: 50%; width: 190px; height: 190px; transform: translate(-50%, -50%); pointer-events: none; }
+[data-theme="dial"] .ring path { fill: none; stroke-width: 5; stroke-linecap: round; }
+[data-theme="dial"] .ring .seg-done { stroke: #ffffff; }
+[data-theme="dial"] .ring .seg-today { stroke: #ffffff; stroke-width: 1.5; }
+[data-theme="dial"] .ring .seg-off { stroke: #3a3a3a; }
+
+/* 14 Stack: card edges below while more cards wait; "1 / 2" instead of dots. */
+[data-theme="stack"] { --card: #1c1c1c; --radius: 18px; --font: var(--font-round); }
+[data-theme="stack"] .card { border-color: #484848; }
+[data-theme="stack"] .card.has-next { box-shadow: 0 6px 0 -3px #1c1c1c, 0 6px 0 -2px #484848, 0 12px 0 -6px #1c1c1c, 0 12px 0 -5px #484848; margin-bottom: 14px; }
+[data-theme="stack"] .deco-pos { display: block; text-align: right; font-size: 0.75em; color: var(--muted); margin-bottom: -18px; margin-right: 60px; }
+[data-theme="stack"] .dots { display: none; }
+
+/* 15 Emblem: a hexagon badge with the rank letter. */
+[data-theme="emblem"] { --bg: #0d0d0d; --card: #1c1c1c; --radius: 0; --btn-radius: 0; --check-mark: "\25C6  "; }
+[data-theme="emblem"] .card { border-color: #484848; }
+[data-theme="emblem"] .big-title,
+[data-theme="emblem"] .target-big { font-family: var(--font-serif); }
+[data-theme="emblem"] .deco-emblem { display: flex; align-items: center; justify-content: center; width: 40px; height: 44px; float: left; margin-right: 10px; background: #ffffff; color: #000000; font-weight: 800; font-family: var(--font-serif); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme="emblem"] .card-name { text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* 16 Scoreboard: each digit on a flip tile. */
+[data-theme="scoreboard"] { --card: #000000; --radius: 4px; --font: var(--font-mono); }
+[data-theme="scoreboard"] .card { border: none; font-family: var(--font-mono); }
+[data-theme="scoreboard"] .part-label,
+[data-theme="scoreboard"] .btn-main { text-transform: uppercase; }
+[data-theme="scoreboard"] .dg { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 44px; margin-right: 3px; border-radius: 4px; background: #2c2c2c; font-size: 0.6em; position: relative; }
+[data-theme="scoreboard"] .dg::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid #000000; }
+[data-theme="scoreboard"] .target-unit { font-size: 0.4em; }
+
+/* 17 Swiss: no card; a two-column table with black rules. */
+[data-theme="swiss"] { --bg: #ffffff; --card: #ffffff; --radius: 0; --btn-radius: 0; }
+[data-theme="swiss"] .big-title { font-weight: 900; }
+[data-theme="swiss"] .card { border: none; border-top: 1px solid #000000; padding: 0; gap: 0; }
+[data-theme="swiss"] .card > .card-head,
+[data-theme="swiss"] .card > .card-target,
+[data-theme="swiss"] .card > .card-checks { display: grid; grid-template-columns: 5.5em 1fr; border-bottom: 1px solid #000000; padding: 8px 0; align-items: baseline; }
+[data-theme="swiss"] .deco-col { display: block; grid-column: 1; grid-row: 1 / span 6; font-size: 0.75em; font-weight: 700; }
+[data-theme="swiss"] .card-target > :not(.deco-col),
+[data-theme="swiss"] .card-checks > :not(.deco-col) { grid-column: 2; }
+[data-theme="swiss"] .card-focus .deco-col { display: none; }
+[data-theme="swiss"] .card > .rule { display: none; }
+[data-theme="swiss"] .btn-main { text-align: left; padding-left: 16px; }
+[data-theme="swiss"] .btn-main::after { content: "  \2192"; }
+
+/* 18 Stamp: a round stamp with the rank in the corner (still, never animated). */
+[data-theme="stamp"] { --bg: #ececec; --radius: 0; --btn-radius: 0; --check-mark: "\2610  "; }
+[data-theme="stamp"] .card { border: 1px solid #c7c7c7; position: relative; }
+[data-theme="stamp"] .big-title,
+[data-theme="stamp"] .target-big { font-family: var(--font-serif); }
+[data-theme="stamp"] .deco-stamp { display: flex; align-items: center; justify-content: center; position: absolute; top: 34px; right: 10px; width: 64px; height: 64px; border: 2px solid #000000; border-radius: 50%; transform: rotate(-12deg); font-size: 0.7em; font-weight: 800; text-transform: uppercase; text-align: center; }
+
+/* 19 Classic: an early computer window with a title bar and offset shadow. */
+[data-theme="classic"] { --bg: #d9d9d9; --radius: 0; --btn-radius: 8px; }
+[data-theme="classic"] .card { border: 2px solid #000000; box-shadow: 3px 3px 0 #000000; padding-top: 0; }
+[data-theme="classic"] .deco-titlebar { display: flex; align-items: center; gap: 8px; margin: 0 -14px 6px; padding: 4px 8px; border-bottom: 2px solid #000000; font-family: var(--font-mono); font-size: 0.8em; }
+[data-theme="classic"] .deco-titlebar::before,
+[data-theme="classic"] .deco-titlebar::after { content: ""; flex: 1 1 auto; border-top: 4px double #000000; }
+[data-theme="classic"] .tb-box { width: 12px; height: 12px; border: 2px solid #000000; background: #ffffff; flex: 0 0 auto; }
+[data-theme="classic"] .tb-name { padding: 0 6px; font-weight: 700; }
+[data-theme="classic"] .tb-box { order: -1; }
+[data-theme="classic"] .target-big { font-family: var(--font-mono); }
+[data-theme="classic"] .btn-main { background: #ffffff; color: #000000; border: 2px solid #000000; box-shadow: 3px 3px 0 #000000; }
+
+/* 20 Tear-off: today's page of a tear-off calendar with a binding and holes. */
+[data-theme="tear-off"] { --bg: #ebebeb; --radius: 0; --btn-radius: 4px; }
+[data-theme="tear-off"] .card { border: 1px solid #d5d5d5; padding-top: 0; }
+[data-theme="tear-off"] .card.has-next { box-shadow: 0 4px 0 -2px #ffffff, 0 4px 0 -1px #d5d5d5, 0 8px 0 -4px #ffffff, 0 8px 0 -3px #d5d5d5; margin-bottom: 10px; }
+[data-theme="tear-off"] .deco-binding { display: flex; justify-content: space-around; align-items: center; height: 18px; margin: 0 -14px 8px; background: #000000; }
+[data-theme="tear-off"] .deco-binding .hole { width: 7px; height: 7px; border-radius: 50%; background: #ebebeb; }
+[data-theme="tear-off"] .card-name { text-transform: uppercase; letter-spacing: 0.06em; }
+[data-theme="tear-off"] .card-target { align-items: center; text-align: center; }
+[data-theme="tear-off"] .target-big { font-family: var(--font-serif); font-size: 4em; font-weight: 700; }
+[data-theme="tear-off"] .card-target .part-label { order: 3; letter-spacing: 0.15em; }
+[data-theme="tear-off"] .deco-date { display: block; }
+[data-theme="tear-off"] .week-box { display: none; }
+[data-theme="tear-off"] .week-letter { border: 1px solid #d5d5d5; width: 100%; text-align: center; padding: 2px 0; }
+[data-theme="tear-off"] .week-cell.done .week-letter { background: #000000; color: #ffffff; }
+[data-theme="tear-off"] .week-cell.is-today .week-letter { border: 2px solid #000000; }
+[data-theme="tear-off"] .check-line::before { content: "\25A1  "; }
+
+/* Light themes: the tab bar and status strip stay readable. */
+[data-theme="polaroid"] .tab.on, [data-theme="poster"] .tab.on, [data-theme="folder"] .tab.on,
+[data-theme="label"] .tab.on, [data-theme="ticket"] .tab.on, [data-theme="split"] .tab.on,
+[data-theme="swiss"] .tab.on, [data-theme="stamp"] .tab.on, [data-theme="classic"] .tab.on,
+[data-theme="tear-off"] .tab.on { color: #000000; }
+
+/* Appearance: a small Today card drawn in each theme (spec 5.13). */
+.theme-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.6em;
+  overflow: hidden;
+}
+
+.theme-preview .card {
+  padding: 8px;
+  gap: 2px;
+}
+
+.theme-preview .target-big {
+  font-size: 2.4em;
+}
+
+.theme-preview .btn-main {
+  min-height: 0;
+  padding: 6px;
+  font-size: 1em;
+}
+
+.theme-preview .week-cells {
+  gap: 3px;
+}
+
+.theme-preview .week-box {
+  height: 8px;
+}
+
+.theme-preview.big {
+  font-size: 0.9em;
+  padding: 14px;
+}
+
+/* ---- Finish effects (spec 3.3): one play, each part <= 300 ms, then still ---- */
+
+.fx {
+  display: block;
+  width: 72px;
+  height: 72px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
+.fx .fx-fill { fill: currentColor; }
+.fx .fx-gray { fill: #8a8a8a; stroke: #8a8a8a; }
+.fx .fx-text { fill: currentColor; stroke: none; font: 800 11px var(--font); letter-spacing: 0.05em; }
+.fx .fx-check { stroke-width: 4; }
+.fx .fx-bulb { fill: currentColor; }
+.fx * { transform-box: view-box; }
+
+@keyframes fx-draw { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+@keyframes fx-stamp { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: scale(1); } }
+@keyframes fx-out { from { opacity: 0; transform: translate(var(--fx-dx), var(--fx-dy)); } to { opacity: 1; transform: none; } }
+@keyframes fx-hop { from { transform: translate(var(--fx-dx), var(--fx-dy)); } 60% { transform: translate(-6px, -10px); } to { transform: none; } }
+@keyframes fx-move { from { transform: translate(var(--fx-dx), var(--fx-dy)); } to { transform: none; } }
+@keyframes fx-burst { from { opacity: 0; transform: translate(var(--fx-dx), var(--fx-dy)) rotate(0deg); } to { opacity: 1; transform: rotate(var(--fx-r)); } }
+@keyframes fx-grow { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes fx-tip { from { transform: rotate(0deg); } to { transform: rotate(24deg); } }
+@keyframes fx-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fx-rise { from { transform: translateY(var(--fx-dy)); } 75% { transform: translateY(0) rotate(4deg); } to { transform: none; } }
+@keyframes fx-light { from { fill-opacity: 0; } to { fill-opacity: 1; } }
+@keyframes fx-drop { from { transform: translateY(var(--fx-dy)); } 80% { transform: translateY(3px); } to { transform: none; } }
+@keyframes fx-lid { from { transform: none; } to { transform: translate(14px, -16px) rotate(24deg); } }
+
+.fx [style*="fx-stamp"] { transform-box: fill-box; transform-origin: center; }
+.fx [style*="fx-grow"],
+.fx [style*="fx-tip"],
+.fx [style*="fx-lid"] { transform-origin: var(--fx-ox) var(--fx-oy); }
+.fx [style*="fx-burst"] { transform-box: fill-box; transform-origin: center; }
+
+/* Previews: the final picture right away. */
+.fx.still * {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+}
+
+/* Reduce Motion: the final picture fades in (<= 150 ms); stay times do not change. */
+@media (prefers-reduced-motion: reduce) {
+  .fx * {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .fx {
+    animation: fade-in 150ms ease-out both;
+  }
+}
+
+.fx-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.fx-tile .fx {
+  width: 60%;
+  height: 60%;
+}
+
+.fx-demo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 12px;
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.preview-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ---- Motion (spec 3.3) ---- */
+
+/* Pages slide in from the right (250 ms); tabs only fade (150 ms). */
+.push-in {
+  animation: push-in 250ms ease-out both;
+}
+
+@keyframes push-in {
+  from { transform: translateX(40%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* A hint box the first time it appears (once). */
+.hint-new {
+  animation: drop-in 250ms ease-out both;
+}
+
+@keyframes drop-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .push-in,
+  .hint-new {
+    animation: fade-in 150ms ease-out both;
+  }
+}
+
+/* S140 already says "Last pass"; the short label is not repeated there. */
+[data-theme] .last-pass .deco-short {
+  display: none !important;
+}
+
+/* Dial: a bigger ring with room for the lines inside it. */
+[data-theme="dial"] .card-target { padding: 64px 0 56px; }
+[data-theme="dial"] .deco-ring { width: 250px; height: 250px; }
+[data-theme="dial"] .card-target > :not(.deco-ring) { position: relative; z-index: 1; max-width: 170px; }
+[data-theme="dial"] .target-big { font-size: 2.4em; }
+
+/* Appearance tiles stay compact. */
+.theme-preview:not(.big) { height: 150px; }
+.theme-preview .card { flex: 1 1 auto; min-height: 0; overflow: hidden; transform: none; }
+.theme-preview .card-target { padding: 0; }
+.theme-preview .deco-ring { display: none; }
