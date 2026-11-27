@@ -20,13 +20,14 @@ const UNLOCKED = {
   G21: () => (state.player.gate || []).length > 0 || [...state.weeks.values()].some((w) => w.nextWeekConfirmed),
   G08: () => state.sessions.some((s) => s.crit),
   G09: () => state.sessions.some((s) => s.crit && s.crit.type !== 'ticket') || (state.player.mana || 0) > 0,
-  G22: () => state.talents.some((t) => t.rank && t.rank !== 'E'),
+  G22: () => state.sessions.some((s) => s.crit && s.crit.type !== 'ticket') || (state.player.mana || 0) > 0 || (state.player.weeklyWins || 0) > 0,
   G12: () => Boolean(state.player.vaultUnlocked),
 };
 
 /** Settings that switch a feature off (G11 Companions, G12 System Vault). */
 const OFF = {
   G11: () => !companionsOn(),
+  G24: () => !companionsOn(),
   G12: () => Boolean(state.settings && state.settings.vaultOn === false),
 };
 

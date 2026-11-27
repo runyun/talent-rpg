@@ -59,7 +59,7 @@ export const CONFIG = Object.freeze({
   },
 
   prices: {
-    theme: 30, badge: 30, titleFrame: 15, logbook: 15, keepsake: 20,
+    theme: 30, finishEffect: 20, titleFrame: 15, logbook: 15, keepsake: 20,
   },
 
   companions: {
@@ -74,10 +74,27 @@ export const CONFIG = Object.freeze({
     newTeacherGrowthBoost: 1.5,
     congratsMin: 1,
     congratsMax: 3,
+    joinFirst: 10,
+    joinPerWin: 5,
+    highRankWeeksFactor: 2,
+    rankLogMax: 10,
+    storyWeeks: [0, 4, 10],
+    storyPrice: 10,
+    recentDays: 14,
   },
 
   feed: { perDay: 10 },
   trialPeriodWeeks: 8,
+
+  // Goals of the validation Check (spec 10.1); the copy (S74-S80, S269) states the same numbers.
+  check: {
+    passRate: { min: 0.7, max: 0.85 },
+    mainRankDByWeek: 4,
+    stress: 2.5,
+    edits: 2,
+    editsFromWeek: 3,
+    addTalentSec: 90,
+  },
 
   undoMs: 3000, // Saved · Undo note (spec 5.3.2)
   finishStayMs: 2000, // finish screen stays about 2 s

@@ -13,6 +13,7 @@ import {
   openSheet, closeSheet, textInput, toggle,
 } from './widgets.js';
 import { rescheduleSheet } from './sheets.js';
+import { newEntrySheet } from './records.js';
 import { completePractice } from './finish.js';
 import { focusTalent } from './today.js';
 import { app } from './app.js';
@@ -66,6 +67,7 @@ export function openReport(card, now, opts = {}) {
   const { seenLine = null } = opts;
   const talent = talentById(card.talent.id);
   const checks = (talent.checks || []).filter(Boolean);
+  const book = state.logbooks.find((b) => b.talentId === talent.id);
   const missed = new Set();
   const once = seenLine || firstTime('S186');
 
@@ -119,6 +121,7 @@ export function openReport(card, now, opts = {}) {
       el('button', { type: 'button', class: 'btn btn-primary', onclick: report('passed') }, raw('L111')),
       el('button', { type: 'button', class: 'btn btn-outline', onclick: report('notYet') }, raw('L112'))),
     addNw,
+    book ? el('button', { type: 'button', class: 'btn-text', onclick: () => newEntrySheet(book, () => openReport(card, now, { skipFirst: true })) }, raw('L114')) : null,
     extra,
   ].filter(Boolean));
 }

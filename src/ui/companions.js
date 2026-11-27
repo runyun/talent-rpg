@@ -4,12 +4,14 @@
 import { el, mount } from '../dom.js';
 import { text, raw, congrats } from '../text.js';
 import {
-  dateKey, fromDateKey, hm, addDays, weekdayLabel, isoWeekday,
+  dateKey, fromDateKey, hm, addDays, dayLabel, fmtDateKey,
 } from '../time.js';
 import { COMPANIONS } from '../data/companions.js';
 import { state, savePlayer } from '../store.js';
-import { selectFeed, congratulators, lastSevenDays } from '../model/companionSim.js';
-import { backButton } from './widgets.js';
+import { CONFIG } from '../config.js';
+import { STORIES } from '../data/stories.js';
+import { selectFeed, congratulators } from '../model/companionSim.js';
+import { backButton, openSheet, closeSheet } from './widgets.js';
 import { app } from './app.js';
 
 export function companionById(id) {
@@ -54,7 +56,6 @@ export function renderFeedSection() {
       }))));
   }
   return el('div', { class: 'feed' },
-    el('h2', { class: 'section-head' }, raw('L140')[0]),
     ...days);
 }
 
@@ -63,29 +64,90 @@ export function renderFeedSection() {
 export function renderCompanion(root, id) {
   const c = companionById(id);
   const s = state.world && state.world.companions[id - 1];
-  if (!c || !s) {
-    app.home();
+  if (!c || !s || s.joinedAt === null) {
+    app.back();
     return;
   }
   const L65 = raw('L65');
-  const today = dateKey(new Date());
-  const ev = s.event && today >= s.event.start && today < s.event.end ? s.event : null;
-  const week = lastSevenDays(id, state.feed, today);
-  const row = (label, value) => el('div', { class: 'profile-row' }, el('span', { class: 'muted small' }, label), el('span', {}, value));
+  const L161 = raw('L161');
+  const now = new Date();
+  const today = dateKey(now);
+  const owned = (state.player.owned && state.player.owned.stories) || [];
+  const mana = state.player.mana || 0;
+  const price = CONFIG.companions.storyPrice;
+  const joined = s.joinedAt ? fromDateKey(s.joinedAt) : fromDateKey(today);
+  const weeksTogether = Math.floor((fromDateKey(today) - joined) / (7 * 86400000));
+
+  // Story (5.9): 3 chapters, open after 0 / 4 / 10 weeks together; 10 Mana each, read again for free.
+  const chapters = STORIES[id - 1].map((ch, i) => {
+    const key = `${id}-${i + 1}`;
+    const head = el('span', { class: 'row-label' }, text('L161', { n: i + 1 }, 1));
+    if (owned.includes(key)) {
+      return el('button', { type: 'button', class: 'row row-tap', onclick: () => readSheet(c, i, ch) },
+        el('span', { class: 'row-main' }, head, el('span', { class: 'row-sub muted small' }, ch.title)),
+        el('span', { class: 'chev muted' }, '›'));
+    }
+    const need = CONFIG.companions.storyWeeks[i];
+    if (weeksTogether < need) {
+      return el('div', { class: 'row row-off' },
+        el('span', { class: 'row-main' }, el('span', { class: 'row-label muted' }, text('L161', { n: i + 1 }, 1)), el('span', { class: 'row-sub muted small' }, text('S307', { n: need }))));
+    }
+    const enough = mana >= price;
+    return el('div', { class: 'row' },
+      el('span', { class: 'row-main' }, head,
+        el('span', { class: 'row-sub muted small' }, enough ? text('S309') : text('S285', { n: price - mana }))),
+      el('button', {
+        type: 'button',
+        class: 'btn-small',
+        disabled: !enough || undefined,
+        onclick: async () => {
+          const p = state.player;
+          if ((p.mana || 0) < price) return;
+          await savePlayer({ ...p, mana: p.mana - price, owned: { ...p.owned, stories: [...((p.owned && p.owned.stories) || []), key] } });
+          app.refresh(); // redraws the page (closing sheets), then the chapter opens
+          readSheet(c, i, ch);
+        },
+      }, `${L161[2]} · ${text('S286', { price })}`));
+  });
+
+  // Recent: the last 14 days (one line a day) and rank-ups (4.10, 5.9).
+  const recent = [];
+  for (let i = 0; i < CONFIG.companions.recentDays; i += 1) {
+    const day = dateKey(addDays(now, -i));
+    if (s.joinedAt && day < s.joinedAt) break;
+    let items = state.feed.filter((x) => x.date === day && x.companionId === id);
+    if (i === 0) items = items.filter((x) => x.time <= hm(now));
+    const pickOrder = ['rankUp', 'event', 'jackpot', 'breakthrough', 'return', 'practice'];
+    const item = pickOrder.map((type) => items.find((x) => x.type === type)).find(Boolean);
+    if (!item) continue;
+    recent.push(el('div', { class: 'row' },
+      el('span', { class: 'row-main' }, el('span', { class: 'row-label' }, feedLine(item)), el('span', { class: 'row-sub muted small num' }, dayLabel(fromDateKey(day), now)))));
+  }
+  const ranks = (s.rankLog || []).slice().reverse().map((r) => el('div', { class: 'row' },
+    el('span', { class: 'row-label' }, text('L48', { rank: r.rank })), el('span', { class: 'row-value muted small num' }, fmtDateKey(r.date))));
 
   mount(root, el('section', { class: 'page fade-in' },
     el('div', { class: 'page-top' }, backButton(() => app.back())),
     el('p', { class: 'muted small' }, text('S53')),
     el('h1', { class: 'page-title' }, c.title),
-    row(L65[0], c.talent),
-    row(L65[1], text('L48', { rank: s.rank })),
-    row(L65[2], c.personality),
-    ev ? el('p', { class: 'small' }, text(ev.key, { name: c.title, talent: c.talent }, 0)) : null,
-    el('div', { class: 'profile-row' },
-      el('span', { class: 'muted small' }, L65[3]),
-      el('div', { class: 'week-dots' }, week.map((d) => el('span', { class: `week-dot${d.practiced ? ' on' : ''}` },
-        el('span', { class: 'small muted' }, weekdayLabel(isoWeekday(fromDateKey(d.day)))),
-        el('span', { class: 'num' }, d.practiced ? '✓' : '·')))))));
+    el('p', { class: 'muted' }, `${c.talent} · ${text('L48', { rank: s.rank })}`),
+    el('div', { class: 'card' }, el('span', { class: 'part-label small muted' }, L65[2]), el('p', {}, c.personality)),
+    el('section', { class: 'group' },
+      el('div', { class: 'page-head-split group-title-row' }, el('h2', { class: 'group-title' }, L161[0]), el('span', { class: 'muted small' }, text('S267', { n: mana }))),
+      el('div', { class: 'group-card' }, chapters)),
+    el('section', { class: 'group' },
+      el('h2', { class: 'group-title' }, L65[3]),
+      recent.length || ranks.length ? el('div', { class: 'group-card' }, [...recent, ...ranks]) : null)));
+}
+
+/** Reading sheet (5.9). */
+function readSheet(c, i, ch) {
+  openSheet([
+    el('p', { class: 'muted small' }, text('S308', { name: c.title, n: i + 1 })),
+    el('h2', { class: 'sheet-title' }, ch.title),
+    el('p', { class: 'story-text' }, ch.text),
+    el('button', { type: 'button', class: 'btn btn-primary btn-main', onclick: () => closeSheet() }, raw('L02')),
+  ]);
 }
 
 // ---- First meeting (C5) ----

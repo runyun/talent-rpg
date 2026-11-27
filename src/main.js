@@ -9,7 +9,7 @@ import {
 import {
   renderCompanion, renderGreeting, needsGreeting, companionsOn,
 } from './ui/companions.js';
-import { initialWorld, catchUp } from './model/companionSim.js';
+import { initialWorld, catchUp, ensureJoined } from './model/companionSim.js';
 import { vaultCatchUp } from './model/vault.js';
 import { renderVaultRules, vaultVisible } from './ui/vault.js';
 import { applyTheme, renderAppearance } from './ui/appearance.js';
@@ -27,6 +27,9 @@ import { renderChallengeIntro, renderChallengeRun, renderChallengeResult } from 
 import { returnUpdates } from './model/challenge.js';
 import { renderWorld, renderMe, renderSettings } from './ui/tabs.js';
 import { renderGuide, renderHowItWorks } from './ui/guide.js';
+import { renderValidation } from './ui/validation.js';
+import { renderHistory, renderLogbooks, renderLogbook } from './ui/records.js';
+import { renderRoom, renderKeepsakes } from './ui/room.js';
 import { renderAddTalent } from './ui/addTalent.js';
 import { renderFinish, stopFinish } from './ui/finish.js';
 import { closeSheet, sheetIsOpen, hideNote } from './ui/widgets.js';
@@ -193,10 +196,10 @@ async function vaultCatchUpNow(now) {
 
 async function companionCatchUp(now) {
   const today = dateKey(now);
-  const world = state.world
-    ? structuredClone(state.world)
-    : initialWorld(dateKey(new Date(state.player.firstOpenedAt)));
-  if (world.global.simulatedThrough >= today) return;
+  const startDay = dateKey(new Date(state.player.firstOpenedAt));
+  const world = state.world ? structuredClone(state.world) : initialWorld(startDay);
+  const joinedNow = ensureJoined(world, startDay, state.player.weeklyWins);
+  if (world.global.simulatedThrough >= today && !joinedNow) return;
   const items = catchUp(world, today);
   await saveWorld(world, items);
 }
@@ -246,6 +249,12 @@ const PAGES = {
   guide: () => renderGuide(root),
   howItWorks: () => renderHowItWorks(root),
   settings: () => renderSettings(root),
+  validation: () => renderValidation(root),
+  history: () => renderHistory(root),
+  logbooks: () => renderLogbooks(root),
+  logbook: (r) => renderLogbook(root, r.arg),
+  room: () => renderRoom(root),
+  keepsakes: () => renderKeepsakes(root),
 };
 
 function openPage(r, { push = true } = {}) {
@@ -274,6 +283,12 @@ app.appearance = () => openPage({ name: 'appearance' });
 app.guide = () => openPage({ name: 'guide' });
 app.howItWorks = () => openPage({ name: 'howItWorks' });
 app.settings = () => openPage({ name: 'settings' });
+app.validation = () => openPage({ name: 'validation' });
+app.history = () => openPage({ name: 'history' });
+app.logbooks = () => openPage({ name: 'logbooks' });
+app.logbook = (id) => openPage({ name: 'logbook', arg: id });
+app.room = () => openPage({ name: 'room' });
+app.keepsakes = () => openPage({ name: 'keepsakes' });
 
 // ---- Full-screen screens ----
 

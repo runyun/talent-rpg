@@ -17,16 +17,53 @@ const nextDay = (key) => dateKey(addDays(fromDateKey(key), 1));
 const plusDays = (key, n) => dateKey(addDays(fromDateKey(key), n));
 const isDown = (key) => EVENTS[key] && EVENTS[key].kind === 'down';
 
-/** Fresh world state, starting the day the app was first opened. */
+// ---- Joining in batches (spec 7.9.1) ----
+
+/** The order companions join: the first 3 always, then the rest shuffled by the first-open day. */
+export function joinOrder(startDay) {
+  const rest = COMPANIONS.map((c) => c.id).filter((id) => id > 3);
+  return [1, 2, 3, ...sample(makeRng(`join|${startDay}`), rest, rest.length)];
+}
+
+const firstBatch = () => CONFIG.companions.joinFirst;
+
+/** Fresh world state, starting the day the app was first opened: 10 companions join. */
 export function initialWorld(startDay) {
+  const joined = new Set(joinOrder(startDay).slice(0, firstBatch()));
   const companions = COMPANIONS.map((c) => ({
-    id: c.id, rank: c.startRank, rankSince: startDay, rankDays: 0, event: null,
+    id: c.id, rank: c.startRank, rankSince: startDay, rankDays: 0, event: null, joinedAt: joined.has(c.id) ? startDay : null, rankLog: [],
   }));
   return {
-    global: { id: 'global', simulatedThrough: plusDays(startDay, -1), longWeekendEnd: null },
+    global: { id: 'global', simulatedThrough: plusDays(startDay, -1), longWeekendEnd: null, startDay },
     companions,
   };
 }
+
+/**
+ * Worlds from before batches: the first 10, plus 5 for each weekly win so far, count as joined
+ * from the first-open day. Changes the world in place; returns true when something changed.
+ */
+export function ensureJoined(world, startDay, weeklyWins) {
+  if (world.companions.every((s) => s.joinedAt !== undefined)) return false;
+  const n = Math.min(COMPANIONS.length, firstBatch() + CONFIG.companions.joinPerWin * (weeklyWins || 0));
+  const joined = new Set(joinOrder(startDay).slice(0, n));
+  for (const s of world.companions) {
+    if (s.joinedAt === undefined) s.joinedAt = joined.has(s.id) ? startDay : null;
+    if (!s.rankLog) s.rankLog = [];
+  }
+  world.global.startDay = world.global.startDay || startDay;
+  return true;
+}
+
+/** After a weekly win: the next 5 join today. Returns their ids (changes the world in place). */
+export function joinNext(world, startDay, day) {
+  const waiting = joinOrder(startDay).filter((id) => !world.companions[id - 1].joinedAt);
+  const ids = waiting.slice(0, CONFIG.companions.joinPerWin);
+  for (const id of ids) world.companions[id - 1].joinedAt = day;
+  return ids;
+}
+
+export const isJoined = (s, day) => Boolean(s && s.joinedAt && s.joinedAt <= day);
 
 /** Simulate one day in place. Returns the feed items of that day. */
 export function simulateDay(day, world) {
@@ -61,6 +98,7 @@ export function simulateDay(day, world) {
 
   for (const c of COMPANIONS) {
     const s = world.companions[c.id - 1];
+    if (s.joinedAt !== undefined && !isJoined(s, day)) continue; // not joined yet: not simulated
     const r = makeRng(`${day}|${c.id}`);
 
     // New event?
@@ -87,13 +125,17 @@ export function simulateDay(day, world) {
 
     // Growth (paused during a plateau; faster with a new teacher; capped at Rank B).
     if (ev && ev.growthPaused) continue;
-    if (RANKS.indexOf(s.rank) >= RANKS.indexOf(cfg.maxRank)) continue;
+    // Fast growers can reach S, each rank from B on taking twice as long; others stop at B.
+    const cap = c.growth === 'fast' ? 'S' : cfg.maxRank;
+    if (RANKS.indexOf(s.rank) >= RANKS.indexOf(cap)) continue;
     s.rankDays += ev && ev.growthBoost ? cfg.newTeacherGrowthBoost : 1;
-    const need = cfg.growthWeeks[c.growth] * 7 * c.attendance;
+    const slow = RANKS.indexOf(s.rank) >= RANKS.indexOf('B') ? cfg.highRankWeeksFactor : 1;
+    const need = cfg.growthWeeks[c.growth] * 7 * c.attendance * slow;
     if (s.rankDays >= need) {
       s.rank = RANKS[RANKS.indexOf(s.rank) + 1];
       s.rankDays = 0;
       s.rankSince = day;
+      s.rankLog = [...(s.rankLog || []), { date: day, rank: s.rank }].slice(-CONFIG.companions.rankLogMax);
       items.push({ date: day, time: c.preferredTime, type: 'rankUp', companionId: c.id, key: 'E12', variant, vars: { rank: s.rank } });
     }
   }

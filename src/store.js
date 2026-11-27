@@ -22,6 +22,7 @@ export const state = {
   vault: null, // { id: 'state', startDraw, lastDraw, carry, ticketedThrough }
   tickets: [],
   draws: [],
+  logbooks: [],
   openMetricId: null,
   openedAt: 0,
 };
@@ -51,6 +52,7 @@ export async function loadState(db) {
   state.vault = vaultRecs.find((r) => r.id === 'state') || null;
   state.tickets = tickets;
   state.draws = draws.sort((a, b) => a.draw - b.draw);
+  state.logbooks = db.objectStoreNames.contains('logbooks') ? (await getAll(db, 'logbooks')).sort((a, b) => a.createdAt - b.createdAt) : [];
 }
 
 export function newId() {
@@ -127,10 +129,24 @@ export async function deleteTalent(talentId) {
     // eslint-disable-next-line no-await-in-loop
     keys[store] = (await getAll(state.db, store, 'talentId', talentId)).map((r) => (store === 'attributes' ? [r.talentId, r.index] : r.id));
   }
-  await transact(state.db, ['talents', ...byTalent], (tx) => {
+  const books = state.logbooks.filter((b) => b.talentId === talentId).map((b) => ({ ...b, talentId: null }));
+  const p = state.player;
+  const gone = new Set((p.keepsakes || []).filter((k) => k.talentId === talentId).map((k) => k.id));
+  const player = {
+    ...p,
+    keepsakes: (p.keepsakes || []).filter((k) => !gone.has(k.id)),
+    owned: { ...p.owned, keepsakes: ((p.owned && p.owned.keepsakes) || []).filter((id) => !gone.has(id)) },
+  };
+  const stores = ['talents', 'player', ...byTalent];
+  if (books.length) stores.push('logbooks');
+  await transact(state.db, stores, (tx) => {
     tx.objectStore('talents').delete(talentId);
     for (const store of byTalent) for (const k of keys[store]) tx.objectStore(store).delete(k);
+    tx.objectStore('player').put(player);
+    for (const b of books) tx.objectStore('logbooks').put(b);
   });
+  state.player = player;
+  for (const b of books) replaceIn(state.logbooks, b);
   state.talents = state.talents.filter((t) => t.id !== talentId);
   state.slots = state.slots.filter((s) => s.talentId !== talentId);
   state.sessions = state.sessions.filter((s) => s.talentId !== talentId);
@@ -158,7 +174,7 @@ export async function applyUpdates({ talents = [], slots = [], player = null }) 
  * Returns an undo snapshot: everything needed to put the data back as it was.
  */
 export async function commitRecord({
-  record, talent, player, week, tickets = [], revealed = [], feedItems = [],
+  record, talent, player, week, tickets = [], revealed = [], feedItems = [], companions = [],
 }) {
   const snapshot = {
     recordId: record.id,
@@ -169,8 +185,10 @@ export async function commitRecord({
     draws: revealed.map((d) => structuredClone(state.draws.find((x) => x.draw === d.draw))).filter(Boolean),
     ticketIds: [],
     feedIds: [],
+    companions: companions.map((c) => structuredClone(state.world.companions[c.id - 1])),
   };
-  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed'], (tx) => {
+  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed', 'companionState'], (tx) => {
+    for (const c of companions) tx.objectStore('companionState').put(c);
     tx.objectStore('sessions').put(record);
     if (talent) tx.objectStore('talents').put(talent);
     tx.objectStore('player').put(player);
@@ -192,12 +210,14 @@ export async function commitRecord({
   state.player = player;
   if (week) state.weeks.set(week.weekStart, week);
   feedItems.forEach((f, i) => state.feed.push({ ...f, id: snapshot.feedIds[i] }));
+  for (const c of companions) state.world.companions[c.id - 1] = c;
   return snapshot;
 }
 
 /** Undo a committed practice: everything goes back; revealed draws become unrevealed again. */
 export async function undoRecord(snapshot) {
-  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed'], (tx) => {
+  await transact(state.db, ['sessions', 'talents', 'player', 'weeks', 'tickets', 'draws', 'feed', 'companionState'], (tx) => {
+    for (const c of snapshot.companions) tx.objectStore('companionState').put(c);
     tx.objectStore('sessions').delete(snapshot.recordId);
     if (snapshot.talent) tx.objectStore('talents').put(snapshot.talent);
     tx.objectStore('player').put(snapshot.player);
@@ -215,8 +235,26 @@ export async function undoRecord(snapshot) {
   const dropped = new Set(snapshot.ticketIds);
   state.tickets = state.tickets.filter((t) => !dropped.has(t.id));
   for (const d of snapshot.draws) replaceIn(state.draws, d, 'draw');
+  for (const c of snapshot.companions) state.world.companions[c.id - 1] = c;
   const feedGone = new Set(snapshot.feedIds);
   state.feed = state.feed.filter((x) => !feedGone.has(x.id));
+}
+
+// ---- Logbooks (spec 4.7, 5.15) ----
+
+/** Save a logbook, and the player too when given (Mana for a new one). */
+export async function saveLogbook(book, player = null) {
+  await transact(state.db, player ? ['logbooks', 'player'] : ['logbooks'], (tx) => {
+    tx.objectStore('logbooks').put(book);
+    if (player) tx.objectStore('player').put(player);
+  });
+  replaceIn(state.logbooks, book);
+  if (player) state.player = player;
+}
+
+export async function deleteLogbook(id) {
+  await transact(state.db, ['logbooks'], (tx) => tx.objectStore('logbooks').delete(id));
+  state.logbooks = state.logbooks.filter((b) => b.id !== id);
 }
 
 // ---- Old recordings (spec 4.8) ----
@@ -228,7 +266,7 @@ export async function deleteMedia(id) {
 
 // ---- Companions ----
 
-const FEED_DAYS = 8;
+const FEED_DAYS = 15; // today + 14 days (profile Recent, spec 5.9)
 
 export async function loadWorld() {
   const records = await getAll(state.db, 'companionState');

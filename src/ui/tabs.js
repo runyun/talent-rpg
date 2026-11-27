@@ -5,24 +5,47 @@
 import { el, mount } from '../dom.js';
 import { text, raw } from '../text.js';
 import { APP_VERSION } from '../version.js';
+import { ITEMS } from '../strings.js';
+import { THEME_IDS, DEFAULT_THEME } from '../themes.js';
+import { roomCard } from './room.js';
+import { loadMetrics, checkList, copyValidation } from './validation.js';
 import {
   state, saveSettings, addMetric, resetAllData,
 } from '../store.js';
 import { levelProgress } from '../model/record.js';
 import { renderFeedSection, companionsOn } from './companions.js';
-import { renderVaultSection, luckyLabel, luckyNumbersSheet } from './vault.js';
 import {
-  backButton, group, navRow, infoRow, toggle, openSheet, closeSheet, showNote,
+  renderVaultSection, luckyLabel, luckyNumbersSheet, vaultVisible,
+} from './vault.js';
+import {
+  backButton, group, navRow, infoRow, toggle, openSheet, closeSheet, showNote, segmented,
 } from './widgets.js';
 import { app } from './app.js';
 
 // ---- World ----
 
+let worldView = 'feed';
+
+/** World (5.4): Feed | Vault when both are on; otherwise only the one that is. */
 export function renderWorld(root) {
-  const sections = [renderFeedSection(), renderVaultSection()].filter(Boolean);
+  const feed = companionsOn();
+  const vault = vaultVisible();
+  if (!feed) worldView = 'vault';
+  if (!vault) worldView = 'feed';
+  const L140 = raw('L140');
+  const seg = feed && vault
+    ? segmented([{ value: 'feed', label: L140[0] }, { value: 'vault', label: L140[1] }], worldView, (v) => { worldView = v; app.refresh(); })
+    : null;
+  const body = worldView === 'vault' ? renderVaultSection() : renderFeedSection();
   mount(root, el('div', { class: 'tab-page fade-in' },
     el('header', { class: 'page-head-tab' }, el('h1', { class: 'big-title' }, raw('L81')[2])),
-    ...sections));
+    seg ? seg.node : null,
+    body));
+}
+
+/** Open World on the Vault (S183 on the finish screen). */
+export function showVault() {
+  worldView = 'vault';
 }
 
 // ---- Me ----
@@ -41,11 +64,22 @@ export function renderMe(root) {
       el('p', { class: 'muted small num' }, text('L92', { x: lv.into, y: lv.need, lv: lv.lv + 1 })),
       el('hr', { class: 'rule' }),
       el('div', { class: 'mana-line' }, el('span', {}, raw('L141')), el('span', { class: 'mana-num num' }, String(p.mana || 0)))),
+    roomCard(),
+    group(raw('L142')[1], [
+      navRow(L82[0], null, () => app.history()),
+      navRow(L82[1], String(state.logbooks.length), () => app.logbooks()),
+    ]),
     group(raw('L142')[2], [
-      navRow(L82[2], null, () => app.appearance()),
+      navRow(L82[2], themeName(), () => app.appearance()),
       navRow(L82[3], null, () => app.guide()),
       navRow(L82[4], null, () => app.settings()),
     ])));
+}
+
+function themeName() {
+  const id = (state.player.equipped && state.player.equipped.theme) || DEFAULT_THEME;
+  const i = THEME_IDS.indexOf(id);
+  return ITEMS.themes[i === -1 ? 0 : i];
 }
 
 // ---- Reset all data (5.10.1): type RESET to confirm; gray only, no red ----
@@ -81,7 +115,16 @@ function resetSheet() {
 
 // ---- Settings ----
 
-export function renderSettings(root) {
+export async function renderSettings(root) {
+  const metrics = await loadMetrics();
+  const check = checkList(metrics);
+  const L79 = raw('L79');
+  const checkRowsNodes = check
+    ? check.rows.map((r) => el('div', { class: 'row row-check' },
+      el('span', { class: 'row-main' }, el('span', { class: 'row-label small num' }, r.fact), r.tip ? el('span', { class: 'row-sub muted small' }, r.tip) : null),
+      r.status ? el('span', { class: 'row-value small' }, r.status) : null))
+    : [infoRow(L79[2])];
+  const copied = el('p', { class: 'muted small', hidden: true }, text('S90'));
   const items = raw('L69');
   const vaultOn = !(state.settings && state.settings.vaultOn === false);
   // Each switch is recorded for the validation data (spec 10).
@@ -111,6 +154,12 @@ export function renderSettings(root) {
       lucky,
     ], { note: null }),
     lockedNote,
-    group(raw('L157'), [infoRow(items[4]), navRow(raw('L163'), null, resetSheet)], { note: text('S54') }),
+    group(check ? text('S284', { n: check.weekNo }) : text('S284', {}), [...checkRowsNodes, navRow(items[5], null, () => app.validation())]),
+    group(raw('L157'), [
+      infoRow(items[4]),
+      el('button', { type: 'button', class: 'row row-tap', onclick: async () => { if (await copyValidation()) copied.hidden = false; } }, el('span', { class: 'row-label' }, raw('L78'))),
+      navRow(raw('L163'), null, resetSheet),
+    ], { note: text('S54') }),
+    copied,
     el('p', { class: 'muted small num page-end' }, text('S64', { version: APP_VERSION }))));
 }

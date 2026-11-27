@@ -126,7 +126,7 @@ export function slotToV5(s, now) {
  * The upgrade step. Only uses the given db / tx (no other async work, or the transaction closes).
  * updateAll(tx, store, fn) rewrites every record of a store.
  */
-export function migrateV4toV5(db, tx, updateAll, now = Date.now()) {
+export function migrateV4toV5(db, tx, updateAll, now = Date.now(), finishPlayer = null) {
   db.createObjectStore('logbooks', { keyPath: 'id' });
 
   const step = (fn) => (event) => {
@@ -144,7 +144,10 @@ export function migrateV4toV5(db, tx, updateAll, now = Date.now()) {
         const next = talents.map((t) => talentToV5(t, trials, attributes, now));
         for (const t of next) tx.objectStore('talents').put(t);
         tx.objectStore('player').getAll().onsuccess = step((players) => {
-          for (const p of players) tx.objectStore('player').put(playerToV5(p, next));
+          for (const p of players) {
+            const v5 = playerToV5(p, next);
+            tx.objectStore('player').put(finishPlayer ? finishPlayer(v5) : v5);
+          }
         });
       });
     });

@@ -52,7 +52,6 @@ export function renderVaultSection() {
       el('span', { class: 'row-value muted small' }, resultLabel(d) || ''));
   };
   return el('div', { class: 'vault' },
-    el('h2', { class: 'section-head' }, raw('L140')[1]),
     el('section', { class: 'card vault-card' },
       el('div', { class: 'mana-line' }, el('span', { class: 'small muted' }, L67[0]), el('span', { class: 'small muted' }, L67[1])),
       el('div', { class: 'mana-line' },

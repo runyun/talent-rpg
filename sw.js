@@ -9,7 +9,7 @@
 //   for "all windows closed" alone is not reliable there.
 // - Only old caches are deleted on activate. IndexedDB (user data) is never touched here.
 
-const VERSION = '0.8.0-c';
+const VERSION = '0.8.0-d';
 const CACHE = `talent-rpg-${VERSION}`;
 
 const FILES = [
@@ -22,6 +22,7 @@ const FILES = [
   './src/format.js',
   './src/main.js',
   './src/migrateV5.js',
+  './src/migrateV6.js',
   './src/rng.js',
   './src/store.js',
   './src/strings.js',
@@ -31,6 +32,8 @@ const FILES = [
   './src/time.js',
   './src/version.js',
   './src/data/companions.js',
+  './src/data/room.js',
+  './src/data/stories.js',
   './src/model/challenge.js',
   './src/model/companionSim.js',
   './src/model/practice.js',
@@ -38,6 +41,7 @@ const FILES = [
   './src/model/roles.js',
   './src/model/schedule.js',
   './src/model/today.js',
+  './src/model/validation.js',
   './src/model/vault.js',
   './src/ui/addTalent.js',
   './src/ui/app.js',
@@ -47,13 +51,17 @@ const FILES = [
   './src/ui/finish.js',
   './src/ui/guide.js',
   './src/ui/install.js',
+  './src/ui/records.js',
   './src/ui/report.js',
+  './src/ui/room.js',
+  './src/ui/roomArt.js',
   './src/ui/sheets.js',
   './src/ui/sunday.js',
   './src/ui/tabs.js',
   './src/ui/talent.js',
   './src/ui/talents.js',
   './src/ui/today.js',
+  './src/ui/validation.js',
   './src/ui/vault.js',
   './src/ui/welcome.js',
   './src/ui/widgets.js',

@@ -12,6 +12,7 @@ import { instanceForTalent } from '../model/schedule.js';
 import { STAR, challengeEntry, practicedTodayTalent } from '../model/challenge.js';
 import { congratsBlock } from './companions.js';
 import { backButton } from './widgets.js';
+import { showVault } from './tabs.js';
 import { app } from './app.js';
 
 const rankWord = (rank) => (rank === STAR ? 'S' : rank);
@@ -145,7 +146,7 @@ export function renderChallengeResult(root, { view, talent, recordId }) {
       el('div', { class: 'result-rows' },
         view.manaGained > 0 ? resultRow(L117[2], text('S176', { m: view.manaGained, n: view.manaTotal })) : null,
         view.slots ? el('p', { class: 'result-line' }, text('S204', view.slots)) : null,
-        view.vaultUnlocked ? el('button', { type: 'button', class: 'line-tap', onclick: () => app.tab('world') }, text('S183')) : null,
+        view.vaultUnlocked ? el('button', { type: 'button', class: 'line-tap', onclick: () => { showVault(); app.tab('world'); } }, text('S183')) : null,
         ...common()),
       ...congrats(),
       view.preview ? el('p', { class: 'muted small' }, text(view.preview.key, view.preview.vars)) : null,

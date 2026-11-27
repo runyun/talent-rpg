@@ -12,6 +12,7 @@
 // - A migration may only use the given `db` / `tx` (no other async work, or the transaction closes).
 
 import { migrateV4toV5 } from './migrateV5.js';
+import { migrateV5toV6, playerToV6, ROOM_DEFAULTS } from './migrateV6.js';
 
 export const DB_NAME = 'talent-rpg';
 
@@ -124,7 +125,11 @@ export const MIGRATIONS = [
   // 3 -> 4: spec version 17 (data v4) was never shipped; nothing changes.
   () => {},
   // 4 -> 5: version 19 practice model (migrateV5.js)
-  (db, tx) => migrateV4toV5(db, tx, updateAll),
+  // When the same upgrade goes on to v6, the v5 player is finished as v6 right away
+  // (its request runs after the v6 step's own read; see migrateV6.js).
+  (db, tx, ctx) => migrateV4toV5(db, tx, updateAll, Date.now(), ctx && ctx.to >= 6 ? playerToV6 : null),
+  // 5 -> 6: version 20, badges retired, finish effects, room, stories (migrateV6.js)
+  migrateV5toV6,
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;
@@ -147,7 +152,7 @@ export function openDb({ name = DB_NAME, migrations = MIGRATIONS } = {}) {
       const from = event.oldVersion;
       try {
         for (let v = from; v < version; v += 1) {
-          migrations[v](db, tx);
+          migrations[v](db, tx, { from, to: version });
         }
         if (db.objectStoreNames.contains('meta')) {
           tx.objectStore('meta').put({ key: 'schemaVersion', value: version, migratedAt: Date.now() });
@@ -247,7 +252,7 @@ export const SETTINGS_ID = 'main';
 export function defaultPlayer(now) {
   return {
     id: PLAYER_ID,
-    schema: 5,
+    schema: 6,
     firstOpenedAt: now,
     lastOpenedAt: now,
     lastPracticedAt: null,
@@ -256,14 +261,17 @@ export function defaultPlayer(now) {
     vaultUnlocked: false,
     pendingPrize: { total: 0, remaining: 0 },
     owned: {
-      themes: ['mono'], badges: ['circle'], titleFrames: ['none'], legendaryTitles: [], keepsakes: [],
+      themes: ['mono'], titleFrames: ['none'], legendaryTitles: [], keepsakes: [], finishEffects: ['check'],
+      room: Object.values(ROOM_DEFAULTS).filter((c) => c !== 'none'), stories: [],
     },
     equipped: {
-      theme: 'mono', badge: 'circle', titleFrame: 'none', title: null,
+      theme: 'mono', titleFrame: 'none', title: null, finishEffect: 'check', room: { ...ROOM_DEFAULTS },
     },
     weeklyWins: 0,
     practiceDays: 0,
     talentSlots: 2,
+    badgeRefund: 0,
+    keepsakes: [],
     gate: [],
     onboardingDone: false,
     seenExplanations: [],

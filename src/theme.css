@@ -1838,3 +1838,154 @@ html:has(.inverse) body {
   background: #000000;
   color: #ffffff;
 }
+
+/* ---- Stage 10C ---- */
+
+/* Room drawing (spec 5.14): lines in the text color, fills in the card color. */
+.room-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.room-art .fill {
+  fill: var(--card);
+}
+
+.room-art .frame {
+  stroke: var(--line);
+}
+
+.room-art .plaque {
+  fill: currentColor;
+  stroke: none;
+  font: 700 9px var(--font);
+}
+
+.room-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.room-card .row {
+  padding: 4px 2px 0;
+  min-height: 32px;
+}
+
+.room-big {
+  padding: 10px;
+  margin: 8px 0;
+}
+
+.item-preview {
+  display: block;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  aspect-ratio: 4 / 3;
+}
+
+.item-preview .room-art {
+  height: 100%;
+}
+
+.preview-tile.on .item-preview {
+  border: 2px solid var(--fg);
+}
+
+.page-head-split,
+.group-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.keepsake-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.keepsake {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card);
+  min-width: 0;
+}
+
+.keepsake-rank {
+  font-size: 2em;
+  font-weight: 700;
+}
+
+/* History month (spec 5.16). */
+.month-nav {
+  display: inline-flex;
+}
+
+.month-nav .icon-btn {
+  margin: 0;
+  font-size: 1.6em;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.month-head {
+  text-align: center;
+}
+
+.day-cell {
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  aspect-ratio: 1 / 1;
+}
+
+.day-cell.done {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.day-cell.is-today {
+  border: 2px solid var(--fg);
+}
+
+.day-cell.on {
+  outline: 2px solid var(--muted);
+  outline-offset: 1px;
+}
+
+.row-check {
+  align-items: flex-start;
+}
+
+/* Companion story (spec 5.9): 17pt, line height 1.5. */
+.story-text {
+  font-size: 17px;
+  line-height: 1.5;
+}

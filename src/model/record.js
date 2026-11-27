@@ -5,6 +5,7 @@ import { CONFIG } from '../config.js';
 import { dateKey, hm, weekKey } from '../time.js';
 import { makeRng } from '../rng.js';
 import { fmtValue } from '../format.js';
+import { joinNext } from './companionSim.js';
 import { weekStats } from './schedule.js';
 import {
   applyFindStart, applyPractice, rankIndex, rankPreview,
@@ -64,6 +65,7 @@ export function finishRecord({
     kind, talentId: talent.id, passed: result === 'passed', congrats: [],
   };
   const feedItems = [];
+  let companions = [];
   let t = { ...talent, challenge: { ...emptyChallenge(), ...(talent.challenge || {}) } };
   let recordValue = talent.target;
   let challengeRank = null;
@@ -276,6 +278,19 @@ export function finishRecord({
     feedItems.push({
       date: today, time: hm(now), type: 'you', companionId: null, key: 'S18', vars: { done: after.done, planned: after.planned, count: player.weeklyWins },
     });
+    // 5 more companions join with each weekly win (spec 7.9.1), even when companions are off.
+    if (state.world) {
+      const world = structuredClone(state.world);
+      const start = world.global.startDay || dateKey(new Date(p.firstOpenedAt || at));
+      const ids = joinNext(world, start, today);
+      if (ids.length) {
+        view.joined = ids.length;
+        companions = world.companions.filter((c) => ids.includes(c.id));
+        feedItems.push({
+          date: today, time: hm(now), type: 'you', companionId: null, key: 'S135', vars: { count: ids.length },
+        });
+      }
+    }
   }
   if (gained && gained.length) {
     feedItems.push({
@@ -286,6 +301,6 @@ export function finishRecord({
   view.manaTotal = player.mana || 0;
 
   return {
-    record, talent: t, player, week, tickets, revealed, feedItems, view,
+    record, talent: t, player, week, tickets, revealed, feedItems, companions, view,
   };
 }

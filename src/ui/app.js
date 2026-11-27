@@ -25,4 +25,10 @@ export const app = {
   guide: () => {},
   howItWorks: () => {},
   settings: () => {},
+  validation: () => {},
+  history: () => {},
+  logbooks: () => {},
+  logbook: () => {},
+  room: () => {},
+  keepsakes: () => {},
 };

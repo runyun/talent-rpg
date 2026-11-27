@@ -19,7 +19,7 @@ import { fmtStep } from '../format.js';
 import { savePlayer } from '../store.js';
 import { openSheet, closeSheet } from './widgets.js';
 import { sundayCardDue, renderSundayCard, sameSlotsNotice } from './sunday.js';
-import { badgeIcon, titleNode } from './appearance.js';
+import { titleNode } from './appearance.js';
 import { roleTag } from './widgets.js';
 import {
   openReport, openQuick, openMore, otherTalentSheet,
@@ -57,7 +57,6 @@ function titleRow() {
   return el('header', { class: 'today-top' },
     el('h1', { class: 'big-title' }, raw('L81')[0]),
     el('span', { class: 'today-lv muted' },
-      badgeIcon((p.equipped && p.equipped.badge) || 'circle'),
       titleNode(p),
       el('span', { class: 'num' }, text('S276', { lv: levelFromExp(p.totalExp) }))));
 }

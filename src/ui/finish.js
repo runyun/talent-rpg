@@ -11,7 +11,7 @@ import {
 } from '../store.js';
 import { finishRecord, levelProgress } from '../model/record.js';
 import { instanceForTalent } from '../model/schedule.js';
-import { congratsBlock } from './companions.js';
+import { congratsBlock, companionsOn } from './companions.js';
 import { showNote, hideNote } from './widgets.js';
 import { clearExtra } from './today.js';
 import { app } from './app.js';
@@ -118,6 +118,7 @@ export function renderFinish(root, { view, snapshot, talent }) {
     : row(L117[1], view.weekPlanned > 0 ? text('S174', { done: view.weekDone, planned: view.weekPlanned }) : String(view.weekDone)));
   if (view.lvNew > view.lvOld) rows.push(el('p', { class: 'result-line' }, text('S17', { old: view.lvOld, new: view.lvNew })));
   if (view.crit) rows.push(el('p', { class: 'result-line' }, text(view.crit)));
+  if (view.joined && companionsOn()) rows.push(el('p', { class: 'result-line' }, text('S135', { count: view.joined })));
   if (view.manaGained > 0) rows.push(row(L117[2], text('S176', { m: view.manaGained, n: view.manaTotal })));
   for (const line of view.vaultLines || []) rows.push(row(L117[3], text(line.key, line.vars || {})));
   parts.push(el('div', { class: 'result-rows' }, rows));
